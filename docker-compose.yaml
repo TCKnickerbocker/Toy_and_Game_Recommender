@@ -1,0 +1,31 @@
+version: "3.8"
+services:
+  spark:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    volumes:
+      - ./src:/app/src
+  api:
+    build:
+      context: .
+      dockerfile: src/deployment/Dockerfile.api
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=development
+    volumes:
+      - ./src:/app/src
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+volumes:
+  grafana-storage:

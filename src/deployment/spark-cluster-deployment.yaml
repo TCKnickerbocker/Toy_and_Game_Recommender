@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark
+      role: master
+  template:
+    metadata:
+      labels:
+        app: spark
+        role: master
+    spec:
+      containers:
+      - name: spark-master
+        image: bde2020/spark-master:latest
+        ports:
+        - containerPort: 7077
+        - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-worker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: spark
+      role: worker
+  template:
+    metadata:
+      labels:
+        app: spark
+        role: worker
+    spec:
+      containers:
+      - name: spark-worker
+        image: bde2020/spark-worker:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: SPARK_MASTER
+          value: "spark://spark-master:7077"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master-service
+spec:
+  selector:
+    app: spark
+    role: master
+  ports:
+  - protocol: TCP
+    port: 7077
+    targetPort: 7077
+  type: ClusterIP

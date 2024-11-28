@@ -1,0 +1,46 @@
+# Configuration files
+config.ini
+*.env
+.env
+
+# Keep templates
+!config.ini.template
+!.env.template
+
+# Bytecode files
+__pycache__/
+*.py[cod]
+
+# Data folder
+/data/*
+
+# Virtual environment
+venv/
+env/
+ENV/
+*.env
+
+# IDE files
+.idea/
+.vscode/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Pytest cache
+.cache/
+
+# Distribution / packaging
+*.egg
+*.egg-info
+dist/
+build/
+*.tar.gz
+*.whl
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db

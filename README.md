@@ -6,46 +6,45 @@
 Current File Tree:
 
 .
-├── README.md
-├── configs
-│   └── raw_reviews_config.json
-├── data
-│   ├── logs
-│   ├── preprocessed
-│   └── raw
-│       ├── Toys_and_Games.jsonl
-│       └── meta_Toys_and_Games.jsonl
-├── docker-compose.yaml
-├── requirements.txt
-├── src
-│   ├── api
-│   │   └── inference_api.py
-│   ├── deployment
-│   │   ├── airflow_dag.py
-│   │   ├── docker
-│   │   │   ├── Dockerfile
-│   │   │   └── Dockerfile.api
-│   │   ├── grafana-deployment.yaml
-│   │   ├── kubernetes
-│   │   │   └── flask-api-deployment.yaml
-│   │   └── spark-cluster-deployment.yaml
-│   ├── etl
-│   │   ├── etl_pipeline.py
-│   │   ├── etl_pipeline_v2.py
-│   │   ├── sentiment_analysis.py
-│   │   ├── snowflake_connector.py
-│   │   ├── some_nlp_file.py
-│   │   └── spark_config.py
-│   ├── examples
-│   │   └── example_read_from_azure.py
-│   ├── models
-│   │   └── train_model.py
-│   └── monitoring
-│       └── prometheus-config.yaml
-└── tests
+├── README.md  
+├── configs  
+│   └── raw_reviews_config.json  
+├── data  
+│   ├── logs  
+│   ├── preprocessed  
+│   └── raw  
+│       ├── Toys_and_Games.jsonl  
+│       └── meta_Toys_and_Games.jsonl  
+├── docker-compose.yaml  
+├── requirements.txt  
+├── src  
+│   ├── api  
+│   │   └── inference_api.py  
+│   ├── deployment  
+│   │   ├── airflow_dag.py  
+│   │   ├── docker  
+│   │   │   ├── Dockerfile  
+│   │   │   └── Dockerfile.api  
+│   │   ├── grafana-deployment.yaml  
+│   │   ├── kubernetes  
+│   │   │   └── flask-api-deployment.yaml  
+│   │   └── spark-cluster-deployment.yaml  
+│   ├── etl  
+│   │   ├── etl_pipeline.py  
+│   │   ├── etl_pipeline_v2.py  
+│   │   ├── sentiment_analysis.py  
+│   │   ├── snowflake_connector.py  
+│   │   ├── some_nlp_file.py  
+│   │   └── spark_config.py  
+│   ├── examples  
+│   │   └── example_read_from_azure.py  
+│   ├── models  
+│   │   └── train_model.py  
+│   └── monitoring  
+│       └── prometheus-config.yaml  
+└── tests  
 
 16 directories, 22 files
-
 
 ### Put ALL Login info in .env, ensure is in gitignore
 

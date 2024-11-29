@@ -1,6 +1,8 @@
-from spark_config import create_spark_session
-from sentiment_analysis import analyze_sentiment
-from snowflake_connector import write_to_snowflake
+
+from etl.configs.spark_config import create_spark_session
+from etl.configs.sentiment_analysis import analyze_sentiment
+from examples.example_snowflake_read_and_write import write_to_snowflake
+import spark
 
 def process_product_names(df):
     """

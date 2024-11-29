@@ -18,7 +18,10 @@ __pycache__/
 venv/
 env/
 ENV/
+toyRecVenv/
+ToyRecVenv/
 *.env
+
 
 # IDE files
 .idea/

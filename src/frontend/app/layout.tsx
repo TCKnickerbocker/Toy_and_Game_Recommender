@@ -1,4 +1,5 @@
-import Grid from "@mui/material/Grid2";
+import { ClerkProvider } from '@clerk/nextjs';
+import Grid from '@mui/material/Grid2';
 
 export default function RootLayout({
   children,
@@ -7,9 +8,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <Grid>{children}</Grid>
-      </body>
+      <ClerkProvider>
+        <body>
+          <Grid>{children}</Grid>
+        </body>
+      </ClerkProvider>
     </html>
   );
 }

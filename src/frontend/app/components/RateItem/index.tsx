@@ -1,36 +1,69 @@
-import * as React from "react";
+'use client';
 import {
   Rating,
   Box,
   Button,
-  DialogTitle,
-  Dialog,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
   Card,
   Typography,
   CardContent,
-} from "@mui/material";
+  CardActions,
+  CardMedia,
+  CardHeader,
+} from '@mui/material';
+import { useState } from 'react';
 
-interface RateItemProps {
-  product: string;
+// ? FUTURE: When parsing productName think about stopping at ",", "+", "-", and any lowercase char. First word?
+// ? FUTURE: Think about adding a "Show More" in the future for description
+export interface RateItemProps {
+  productName: string;
   description: string;
   id: string;
-  img: string;
+  imgUrl: string;
 }
 
-// ? Think about changing to Dialog in the future for sleeker look
-export function RateItem({ product, description, id, img }: RateItemProps) {
-  return (
-    <Box>
-      <Card>
-        <CardContent>
-          <Typography>{product}</Typography>
-          <Typography>{description}</Typography>
+// ? FUTURE: Think about changing to Dialog in the future for sleeker look
+export function RateItem({
+  productName,
+  description,
+  id,
+  imgUrl,
+}: RateItemProps) {
+  const [userRating, setUserRating] = useState(0);
 
-          <Rating defaultValue={2.5} precision={0.5} />
+  // TODO: Send data to Snowflake DB
+  const handleSubmit = () => {
+    console.log(`${productName}, ${userRating}`);
+  };
+
+  // ? FUTURE: Make it so one submit button can handle all of these requests
+  return (
+    <Box
+      component="span"
+      sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }}
+    >
+      <Card variant="outlined" sx={{ width: '300px' }}>
+        <CardHeader title={productName} />
+        <CardMedia
+          component="img"
+          // height="500"
+          image={imgUrl}
+          alt="Product Image"
+          sx={{ aspectRatio: '1/1', width: '300px', height: '300px' }}
+        />
+        <CardContent sx={{ height: '150px' }}>
+          <Typography>{description}</Typography>
         </CardContent>
+        <CardActions disableSpacing>
+          <Rating
+            defaultValue={0}
+            precision={0.5}
+            value={userRating}
+            onChange={(event, newValue) => setUserRating(newValue!)}
+          />
+          <Button size="small" onClick={handleSubmit}>
+            Submit
+          </Button>
+        </CardActions>
       </Card>
     </Box>
   );

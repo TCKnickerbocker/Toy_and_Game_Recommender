@@ -32,7 +32,7 @@ export function RateItem({
 
   // TODO: Send data to Snowflake DB
   const handleSubmit = () => {
-    console.log(`${productName}, ${userRating}`);
+    console.log(`${productName}, ${userRating}, ${id}`);
   };
 
   // ? FUTURE: Make it so one submit button can handle all of these requests

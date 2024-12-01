@@ -1,7 +1,8 @@
-'use client';
 import { Box, Button, Typography } from '@mui/material';
-import { RateItem, RateItemProps } from '../../components/RateItem';
-import { useUser } from '@clerk/nextjs';
+import {
+  RateItem,
+  RateItemProps,
+} from '../../../../frontend2/app/components/RateItem';
 
 // Make every new user rate these items to avoid "cold start" with our recommender system
 const coldStartItems: RateItemProps[] = [
@@ -80,25 +81,20 @@ const coldStartItems: RateItemProps[] = [
 
 // ? FUTURE: Use Stepper component
 export default function NewUserPage() {
-  const { isSignedIn, user, isLoaded } = useUser();
-
-  if (isSignedIn && isLoaded) {
-    console.log(user);
-  }
-
   return (
     <Box>
       <Box>
         <Typography>
-          Hey there! Welcome to our Toy and Game Recommender. Since it's your
-          first time here, lets have you rate some items to get a good idea of
-          what you're looking for!
+          Hey there! Welcome to our Toy and Game Recommender. Since it&apos;s
+          your first time here, lets have you rate some items to get a good idea
+          of what you&apos;re looking for!
         </Typography>
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
         {coldStartItems.map(({ productName, description, id, imgUrl }) => {
           return (
             <RateItem
+              key={id}
               productName={productName}
               description={description}
               id={id}

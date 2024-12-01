@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+// Top level component, everything runs through this
+import { Outlet } from "react-router-dom";
 
 export default function App() {
   return (

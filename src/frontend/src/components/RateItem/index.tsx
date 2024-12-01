@@ -1,4 +1,3 @@
-'use client';
 import {
   Rating,
   Box,
@@ -9,8 +8,8 @@ import {
   CardActions,
   CardMedia,
   CardHeader,
-} from '@mui/material';
-import { useState } from 'react';
+} from "@mui/material";
+import { useState } from "react";
 
 // ? FUTURE: When parsing productName think about stopping at ",", "+", "-", and any lowercase char. First word?
 // ? FUTURE: Think about adding a "Show More" in the future for description
@@ -22,7 +21,7 @@ export interface RateItemProps {
 }
 
 // ? FUTURE: Think about changing to Dialog in the future for sleeker look
-export function RateItem({
+export default function RateItem({
   productName,
   description,
   id,
@@ -39,18 +38,18 @@ export function RateItem({
   return (
     <Box
       component="span"
-      sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }}
+      sx={{ display: "inline-block", mx: "2px", transform: "scale(0.8)" }}
     >
-      <Card variant="outlined" sx={{ width: '300px' }}>
+      <Card variant="outlined" sx={{ width: "300px" }}>
         <CardHeader title={productName} />
         <CardMedia
           component="img"
           // height="500"
           image={imgUrl}
           alt="Product Image"
-          sx={{ aspectRatio: '1/1', width: '300px', height: '300px' }}
+          sx={{ aspectRatio: "1/1", width: "300px", height: "300px" }}
         />
-        <CardContent sx={{ height: '150px' }}>
+        <CardContent sx={{ height: "150px" }}>
           <Typography>{description}</Typography>
         </CardContent>
         <CardActions disableSpacing>

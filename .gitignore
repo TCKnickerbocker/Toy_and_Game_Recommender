@@ -22,6 +22,7 @@ toyRecVenv/
 ToyRecVenv/
 *.env
 
+# src/etl/configs/inappropriate_words.txt
 
 # IDE files
 .idea/

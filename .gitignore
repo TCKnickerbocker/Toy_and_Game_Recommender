@@ -48,3 +48,6 @@ build/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Embeddings
+src/data/embeddings/*

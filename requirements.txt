@@ -20,7 +20,7 @@ prometheus-flask-exporter
 # Natural Language Processing
 spacy==3.7.4
 profanity_filter
-sentence-transformers
+sentence_transformers
 nltk
 
 # Environment and Configuration

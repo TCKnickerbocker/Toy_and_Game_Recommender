@@ -1,8 +1,5 @@
-import snowflake.connector
 
-
-
-def get_n_most_similar_product_titles(conn, product_id, n=50):
+def get_n_most_similar_products(conn, product_id, similarity_tablename='product_description_similarity', n=8):
     """
     Fetch the top n most similar products to a given product_id from both product1_id and product2_id perspectives,
     excluding the current product_id from the results.
@@ -10,7 +7,7 @@ def get_n_most_similar_product_titles(conn, product_id, n=50):
     Args:
     - conn: Snowflake connection object
     - product_id: The product ID for which to find the top n similar products
-    - n: The number of similar products to retrieve (default is 50)
+    - n: The number of similar products to retrieve (default is 8)
     
     Returns:
     - List of tuples containing (similar_product_id, similarity_score) for the top n most similar products,
@@ -22,10 +19,10 @@ def get_n_most_similar_product_titles(conn, product_id, n=50):
         raise ValueError("n must be a positive integer")
     
     # Build the query string with the validated n value
-    query = """
+    query = f"""
     (
         SELECT product2_id AS similar_product_id, similarity_score
-        FROM product_title_similarity
+        FROM {similarity_tablename}
         WHERE product1_id = %s
           AND product2_id != %s
         ORDER BY similarity_score DESC
@@ -34,7 +31,7 @@ def get_n_most_similar_product_titles(conn, product_id, n=50):
     UNION
     (
         SELECT product1_id AS similar_product_id, similarity_score
-        FROM product_title_similarity
+        FROM {similarity_tablename}
         WHERE product2_id = %s
           AND product1_id != %s
         ORDER BY similarity_score DESC
@@ -48,5 +45,7 @@ def get_n_most_similar_product_titles(conn, product_id, n=50):
     with conn.cursor() as cur:
         cur.execute(query, (product_id, product_id, n, product_id, product_id, n, n))
         top_similar_products = cur.fetchall()
+        
     
     return top_similar_products
+

@@ -246,7 +246,7 @@ def main():
     )
     parser.add_argument(
         "--embeddings-file", 
-        default="./embeddings/product_description_embeddings.json", 
+        default="../../data/embeddings/product_description_embeddings.json", 
         help="Path to the embeddings JSON file"
     )
     parser.add_argument(

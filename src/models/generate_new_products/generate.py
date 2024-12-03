@@ -5,7 +5,6 @@ from openai import OpenAI
 import concurrent.futures
 import logging
 from typing import List, Dict, Tuple
-import base64
 
 load_dotenv()
 
@@ -27,32 +26,42 @@ class CreativeProductGenerator:
         self.connection_params = connection_params
         self.max_workers = max_workers
 
-    def fetch_inspiration_products(self, conn, source_table='most_popular_products', limit=10) -> List[Dict]:
+    def fetch_inspiration_products(self, conn, limit=10, user_id=None) -> List[Dict]:
         """
         Fetch product data to inspire new product creation.
 
         :param conn: Snowflake connection object
-        :param source_table: Name of the source table
         :param limit: Number of products to fetch for inspiration
+        :param user_id: Optional user ID to filter products (not used in this version)
         :return: List of dictionaries containing product data
         """
-        with conn.cursor() as cur:
+        # TODO: Test query (it is probably wrong)
+        with conn.cursor(as_dict=True) as cur:
             query = f"""
-            SELECT Title, Description, Store, Price, Rating
-            FROM {source_table}
-            ORDER BY Rating DESC
+            SELECT 
+                p.productId,
+                p.title, 
+                p.summary,
+                p.description,
+                u.RATING
+            FROM 
+                most_popular_products p
+            LEFT JOIN 
+                user_ratings u ON p.productId = u.PARENT_ASIN AND u.user_id = '{user_id}'
+            ORDER BY 
+                u.RATING DESC NULLS LAST
             LIMIT {limit}
             """
-            cur.execute(query)
+            cur.execute(query, {'limit': limit})
             rows = cur.fetchall()
 
         return [
             {
-                "title": row[0], 
-                "description": row[1], 
-                "store": row[2],
-                "price": row[3],
-                "rating": row[4]
+                "product_id": row['PRODUCTID'],
+                "title": row['TITLE'], 
+                "summary": row['SUMMARY'],
+                "image": row['IMAGE'],
+                "rating": row['AVG_RATING']
             }
             for row in rows
         ]
@@ -68,29 +77,34 @@ class CreativeProductGenerator:
         """
         try:
             # Prepare inspiration summary
-            inspiration_summary = "\n".join([
-                f"- {p['title']} (Rating: {p['rating']}): {p['description']}" 
+            user_history = "\n".join([
+                f"""- {p['title']}
+                (User's rating: {p['rating']}): 
+                {p['summary']}
+                {p['description']}
+                """
                 for p in inspiration_products
             ])
 
             prompt = f"""
-            Create an innovative new product concept inspired by these top-rated products:
+            Make a creative, fun, unique and interesting new toy or game 
+            that is appropriate for kids and will appeal to this user given their past ratings:
 
-            {inspiration_summary}
+            {user_history}
 
-            Generate a completely new product that:
-            1. Identifies a unique market need or solving an interesting problem
-            2. Has a catchy, memorable name
-            3. Includes a compelling initial product description
-            4. Suggests a potential price point
-            5. Targets a specific audience or use case
+            Generate a completely new toy or game that is appropriate for children that:
+            1. Has a catchy, memorable name
+            2. Includes a compelling initial product description
+            3. Targets a specific audience or use case
 
             Provide the following details:
             - Product Name
-            - Product Description (max 150 words)
+            - Product Summary (max 120 words)
+            - Product Description (max 120 words)
             - Target Audience
-            - Estimated Price Range
             - Key Innovative Features
+            
+            Please be as creative as possible while still making something that will appeal to this person!
             """
 
             response = client.chat.completions.create(
@@ -123,12 +137,14 @@ class CreativeProductGenerator:
         try:
             # Extract product details from the concept text
             prompt = f"""
-            Create a high-quality product image for a new innovative product. 
-            Generate a professional, visually appealing image that captures the essence of this product concept:
+            
+            Create a high-quality product image for a new toy or game.
+            Generate a professional, visually appealing image to associate with this product that captures the essence of this product concept:
 
             {product_concept['concept_text']}
 
             Focus on creating a clear, attractive visualization that would appear in a product catalog or marketing material.
+            This will be displayed as our product image on Amazon.
             """
 
             response = client.images.generate(
@@ -163,7 +179,7 @@ class CreativeProductGenerator:
             # Ensure the table has necessary columns
             create_table_query = f"""
             CREATE TABLE IF NOT EXISTS {source_table} (
-                productId VARCHAR PRIMARY KEY,
+                productId VARCHAR(12) PRIMARY KEY,
                 Title VARCHAR,
                 Description TEXT,
                 ImageUrl VARCHAR,
@@ -173,10 +189,9 @@ class CreativeProductGenerator:
             """
             cur.execute(create_table_query)
 
-            # Generate a unique product ID
-            import uuid
-            product_id = str(uuid.uuid4())
-
+            # TODO: fix to ensure unique Generate a unique product ID
+            product_id = "1"
+            print(f"Product id: {product_id}")
             # Insert the new product
             insert_query = f"""
             INSERT INTO {source_table} 
@@ -264,7 +279,7 @@ def main():
     product_generator.generate_creative_products(
         source_table=source_table, 
         target_table=target_table, 
-        num_products=5
+        num_products=1
     )
 
 if __name__ == "__main__":

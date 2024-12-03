@@ -93,16 +93,23 @@ def create_user():
     user_id = data['user_id']
     email = data['email']
 
-    if check_user_exists(user_id) == True:
-        print("ISSUE: This user already exists")
-        return {"message": "User already exists"}, 400
+    
 
     try:
         conn = setup_connection()
 
         cur = conn.cursor()
 
-        cur.execute("INSERT INTO user_accounts (user_id, email) VALUES (%s, %s)", (user_id, email))
+        cur.execute("CREATE OR REPLACE TABLE user_ratings (REVIEW_ID INT IDENTITY PRIMARY KEY, USER_ID VARCHAR(255), PARENT_ASIN VARCHAR(50), RATING FLOAT, FAVORITE BOOLEAN, FOREIGN KEY (user_id) REFERENCES user_accounts(user_id) ON DELETE CASCADE);")
+
+        if check_user_exists(user_id) == True:
+            print("ISSUE: This user already exists")
+            conn.commit()
+            conn.close()
+            return {"message": "User already exists"}, 400
+        else:
+            cur.execute("INSERT INTO user_accounts (user_id, email) VALUES (%s, %s)", (user_id, email))
+        
 
         conn.commit()
     except snowflake.connector.Error as e:
@@ -116,8 +123,6 @@ def create_user():
 @app.route("/api/user_ratings", methods=["POST"])
 def insert_user_reviews():
     data = request.json
-
-    print(f"DATA GOES HERE {data}")
 
     user_id = data['user_id']
     product_id = data['product_id']
@@ -154,8 +159,21 @@ Get Initial N Products
 """
 @app.route("/api/initial_products", methods=["GET"])
 def initial_products():
+    try:
+        conn = setup_connection()
 
-    return
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT 8")
+
+        return cur.fetchall()
+    except snowflake.connector.Error as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    
+    return {"message": "Something went wrong with fetching initial products"}, 400
 
 """
 Get N Most Similar Products Based on Past Ratings

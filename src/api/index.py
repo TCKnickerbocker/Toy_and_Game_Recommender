@@ -53,6 +53,24 @@ def check_user_exists(user_id):
     
     return False
 
+def check_rating_exists(user_id, product_id):
+    try:
+        conn = setup_connection()
+
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM user_ratings WHERE user_id = %s AND parent_asin = %s", (user_id, product_id))
+
+        results = cur.fetchall()
+        return len(results) > 0
+    except snowflake.connector.Error as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    
+    return False
+
 # @app.route("/recommend", methods=["GET"])
 # def recommend():
 #     user_id = int(request.args.get("user_id"))
@@ -94,7 +112,69 @@ def create_user():
         conn.close()
     
     return {"message": "User created successfully"}, 201
+
+@app.route("/api/user_ratings", methods=["POST"])
+def insert_user_reviews():
+    data = request.json
+
+    print(f"DATA GOES HERE {data}")
+
+    user_id = data['user_id']
+    product_id = data['product_id']
+    rating = data['rating']
+    favorite = data['favorite']
+
+    if check_rating_exists(user_id, product_id) == True:
+        print("ISSUE: User rating already exists for this product")
+        return {"message": "User rating already exists for this product"}, 400
+
+    try:
+        conn = setup_connection()
+
+        cur = conn.cursor()
+
+        cur.execute("INSERT INTO user_ratings (user_id, parent_asin, rating, favorite) VALUES (%s, %s, %s, %s)", (user_id, product_id, rating, favorite))
+
+        conn.commit()
+    except snowflake.connector.Error as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
     
+    return {"message": "Reviews inserted successfully"}, 201
+
+
+# TODO: FUNCTIONS TO CREATE
+
+"""
+Get Initial N Products
+    - Should return N products for the user to initially rate
+    - Could be the N most popular products or N random products
+"""
+@app.route("/api/initial_products", methods=["GET"])
+def initial_products():
+
+    return
+
+"""
+Get N Most Similar Products Based on Past Ratings
+    - We'll now need to return the most similar products based on what the user's previously rated an item
+    - Maybe use the ratings as weights in some sort of equation?
+"""
+@app.route("/api/most_similar_products", methods=["GET"])
+def most_similar_products():
+
+    return
+
+"""
+Generate Fake Product
+    - Will call the NLP Model to generate a fake product based on the user's ratings
+"""
+@app.route("/api/generate_fake_product", methods=["GET"])
+def generate_fake_product():
+
+    return
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)

@@ -3,12 +3,7 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import "./css/index.css";
 import App from "./App";
 import Layout from "./layout";
-import {
-  WelcomeBackPage,
-  NewUserPage,
-  RecommendationsPage,
-  LandingPage,
-} from "./pages";
+import { RecommendationsPage, LandingPage } from "./pages";
 import { createRoot } from "react-dom/client";
 
 const router = createBrowserRouter([
@@ -20,14 +15,6 @@ const router = createBrowserRouter([
       {
         path: "/",
         element: <LandingPage />,
-      },
-      {
-        path: "/welcome/back",
-        element: <WelcomeBackPage />,
-      },
-      {
-        path: "/welcome/new_user",
-        element: <NewUserPage />,
       },
       {
         path: "/recommendations",

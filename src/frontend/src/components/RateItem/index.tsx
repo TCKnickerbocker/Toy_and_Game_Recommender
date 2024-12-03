@@ -8,7 +8,10 @@ import {
   CardActions,
   CardMedia,
   CardHeader,
+  IconButton,
 } from "@mui/material";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import { useState } from "react";
 
 // ? FUTURE: When parsing productName think about stopping at ",", "+", "-", and any lowercase char. First word?
@@ -18,6 +21,8 @@ export interface RateItemProps {
   description: string;
   id: string;
   imgUrl: string;
+  onRatingChange?: (id: string, rating: number) => void;
+  onFavoriteChange?: (id: string, clicked: boolean) => void;
 }
 
 // ? FUTURE: Think about changing to Dialog in the future for sleeker look
@@ -26,12 +31,22 @@ export default function RateItem({
   description,
   id,
   imgUrl,
+  onRatingChange,
+  onFavoriteChange,
 }: RateItemProps) {
   const [userRating, setUserRating] = useState(0);
+  const [favorite, setFavorite] = useState(false);
 
-  // TODO: Send data to Snowflake DB
-  const handleSubmit = () => {
-    console.log(`${productName}, ${userRating}, ${id}`);
+  const handleRatingChange = (newValue: number) => {
+    console.log("CHANGING RATING");
+    setUserRating(newValue!);
+    onRatingChange!(id, newValue);
+  };
+
+  const handleFavorites = () => {
+    console.log("FAV VAL: ", !favorite);
+    setFavorite(!favorite);
+    onFavoriteChange!(id, !favorite);
   };
 
   // ? FUTURE: Make it so one submit button can handle all of these requests
@@ -57,11 +72,24 @@ export default function RateItem({
             defaultValue={0}
             precision={0.5}
             value={userRating}
-            onChange={(event, newValue) => setUserRating(newValue!)}
+            onChange={(event, newValue) =>
+              handleRatingChange(newValue ? newValue : 1)
+            }
           />
-          <Button size="small" onClick={handleSubmit}>
-            Submit
-          </Button>
+          <IconButton
+            onClick={handleFavorites}
+            sx={{
+              // border: "1px solid",
+              borderColor: "gray",
+              // backgroundColor: favorite ? "primary.main" : "transparent",
+              color: favorite ? "red" : "inherit",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.04)",
+              },
+            }}
+          >
+            {favorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+          </IconButton>
         </CardActions>
       </Card>
     </Box>

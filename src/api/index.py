@@ -1,11 +1,14 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, render_template, session, url_for
 # from pyspark.sql import SparkSession
 # from pyspark.ml.recommendation import ALSModel
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 import snowflake.connector
 import os
+from os import environ as env
+import sys
 
 app = Flask(__name__)
+app.secret_key = env.get("APP_SECRET_KEY")
 
 # Load trained models
 # cf_model = ALSModel.load("models/collaborative_filtering")
@@ -15,14 +18,40 @@ app = Flask(__name__)
 
 load_dotenv()
 
-conn = snowflake.connector.connect(
-    user=os.getenv("SNOWFLAKE_USER"),
-    password=os.getenv("SNOWFLAKE_PASSWORD"),
-    account=os.getenv("SNOWFLAKE_ACCOUNT"),
-    warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-    database=os.getenv("SNOWFLAKE_DATABASE"),
-    schema=os.getenv("SNOWFLAKE_SCHEMA")
-)
+def setup_connection():
+    try:
+        conn = snowflake.connector.connect(
+            user=os.getenv("SNOWFLAKE_USER"),
+            password=os.getenv("SNOWFLAKE_PASSWORD"),
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+            database=os.getenv("SNOWFLAKE_DATABASE"),
+            schema=os.getenv("SNOWFLAKE_SCHEMA")
+        )
+
+        return conn
+    except snowflake.connector.Error as e:
+        print(f"Error connecting to Snowflake: {e}", file=sys.stderr)
+        raise
+
+# Checks if a user exists or not
+def check_user_exists(user_id):
+    try:
+        conn = setup_connection()
+
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM user_accounts WHERE user_id = %s", (user_id))
+
+        results = cur.fetchall()
+        return len(results) > 0
+    except snowflake.connector.Error as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    
+    return False
 
 # @app.route("/recommend", methods=["GET"])
 # def recommend():
@@ -39,23 +68,23 @@ conn = snowflake.connector.connect(
 #     product_ids = [rec["product_id"] for rec in recs]
 #     return jsonify({"user_id": user_id, "recommended_products": product_ids})
 
-@app.route("/api/healthchecker", methods=["GET"])
-def healthchecker():
-    return {"status": "success", "message": "Integrate Flask Framework with Next.js"}
-
-@app.route("/create_user", methods=["POST"])
+@app.route("/api/create_user", methods=["POST"])
 def create_user():
     data = request.json
-
-    app.logger.info(f"testing info log {data}")
 
     user_id = data['user_id']
     email = data['email']
 
+    if check_user_exists(user_id) == True:
+        print("ISSUE: This user already exists")
+        return {"message": "User already exists"}, 400
+
     try:
+        conn = setup_connection()
+
         cur = conn.cursor()
 
-        cur.execute("INSERT INTO user_accounts (user_id, email) VALUES ('%s', '%s')", (user_id, email))
+        cur.execute("INSERT INTO user_accounts (user_id, email) VALUES (%s, %s)", (user_id, email))
 
         conn.commit()
     except snowflake.connector.Error as e:
@@ -68,7 +97,7 @@ def create_user():
     
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8000)
+    app.run(host="0.0.0.0", port=8000)
 
 
 '''

@@ -2,7 +2,9 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:8000",
   "dependencies": {
+    "@auth0/auth0-react": "^2.2.4",
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
     "@mui/icons-material": "^6.1.9",
@@ -17,6 +19,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.0.1",
     "react-scripts": "5.0.1",
+    "typescript": "^5.7.2",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

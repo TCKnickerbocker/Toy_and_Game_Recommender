@@ -46,6 +46,7 @@ class ProductDescriptionUpdater:
             query = f"""
             SELECT productId, Title, Details, Store
             FROM {source_table}
+            where Description is null
             """
             cur.execute(query)
             rows = cur.fetchall()
@@ -94,6 +95,7 @@ class ProductDescriptionUpdater:
             - Keywords people might use to describe the product (racing, pokemon, anime)
             - Add specific keywords to capture the sentiment of this product (upbeat, entertainment, learning) 
             - Function of the product
+            - Any additional relevant details, such as the number of players, game time, 
             """
 
             response = client.chat.completions.create(

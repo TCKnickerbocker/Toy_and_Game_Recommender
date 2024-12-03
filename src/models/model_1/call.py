@@ -18,10 +18,14 @@ conn = snowflake.connector.connect(
 )
 
 
-productIDs = helper_functions.get_n_most_similar_products(conn, 'B09S19HKSB', similarity_tablename='product_title_similarity')
-print(productIDs)
-productIDs = helper_functions.get_n_most_similar_products(conn, 'B09S19HKSB', similarity_tablename='product_description_similarity')
-print(productIDs)
+productID_to_query = 'B09S19HKSB'
+byTitleProductIDs = helper_functions.get_n_most_similar_products(conn, productID_to_query, similarity_tablename='product_title_similarity')
+print(byTitleProductIDs)
+byDescriptionProductIDs = helper_functions.get_n_most_similar_products(conn, productID_to_query, similarity_tablename='product_description_similarity')
+print(byDescriptionProductIDs)
 
-
+print("\n\n\nTop Recs by Title:")
+print(helper_functions.get_n_most_similar_product_ids(conn, byTitleProductIDs, product_table='most_popular_products'))
+print("\n\n\nTop Recs by Description:")
+print(helper_functions.get_n_most_similar_product_ids(conn, byDescriptionProductIDs, product_table='most_popular_products'))
 

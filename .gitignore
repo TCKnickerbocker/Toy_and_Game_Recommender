@@ -22,6 +22,7 @@ toyRecVenv/
 ToyRecVenv/
 *.env
 
+# src/etl/configs/inappropriate_words.txt
 
 # IDE files
 .idea/
@@ -47,3 +48,6 @@ build/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Embeddings
+src/data/embeddings/*

@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -16,3 +17,7 @@ CONNECTION_PARAMS = {
 OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
 
 TESTING_USER_ID="dummyUser"
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+LOGGER = logging.getLogger(__name__)

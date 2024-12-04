@@ -42,3 +42,8 @@ authlib>=1.0
 requests>=2.27.1
 
 
+# AWS S3
+boto3
+requests
+urllib
+logger

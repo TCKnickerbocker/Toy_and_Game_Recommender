@@ -21,7 +21,7 @@ def update_image_column(
     Returns:
         None
     """
-    conn = snowflake.connector.connect(connection_params)
+    conn = snowflake.connector.connect(**connection_params)
 
     try:
         cur = conn.cursor()

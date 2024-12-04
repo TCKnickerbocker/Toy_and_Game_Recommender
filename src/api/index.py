@@ -199,23 +199,22 @@ def most_similar_products():
     """
     try:
         # Extract query parameters
-        product_id = request.args.get('product_id')
-        n = int(request.args.get('n', 8))  # Default to 8 if not provided
+        user_id = request.args.get('user_id', "dummyUser")
+        # return jsonify({"error": "Missing required parameter: user_id"}), 400  # TODO: Have return error if no user_id when in prod
+        
+        num_recently_rated = int(request.args.get('num_recently_rated', 8))  # Default to 8 if not provided
+        num_recs_to_give = int(request.args.get('num_recs_to_give', 8))  # Default to 8 if not provided
+        
         by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
 
-        if not product_id:
-            return jsonify({"error": "Missing required parameter: product_id"}), 400
-
         # Call the model function
-        product_ids = call_model_1(product_id=product_id, n=n, by_title=by_title)
-
+        products_json = call_model_1(product_id=user_id, num_recently_rated=num_recently_rated, num_recs_to_give=num_recs_to_give, by_title=by_title)
+        print(f"API Returning: {products_json}")
         # Return a success response
-        return jsonify({"product_id": product_id, "most_similar_products": product_ids}), 200
+        return jsonify({"recommended_products" : products_json}), 200
     except Exception as e:
-        # Log the error (optional: use a logging library for better logs)
+        # Log & return the error
         print(f"Error in /api/most_similar_products: {e}")
-
-        # Return an error response
         return jsonify({"error": "Failed to retrieve most similar products", "details": str(e)}), 500
 
 """

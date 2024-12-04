@@ -2,17 +2,17 @@
 FROM python:3.9-slim
 
 # Set working directory
-WORKDIR /app
+WORKDIR /api
 
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY src .
+COPY . .
 
 # Expose the API port
-EXPOSE 5000
+EXPOSE 8000
 
 # Start the API
-CMD ["python", "api/inference_api.py"]
+CMD ["python3", "api/index.py"]

@@ -38,3 +38,7 @@ cython<3
 
 # Optional: Deep Learning and AI
 transformers
+authlib>=1.0
+requests>=2.27.1
+
+

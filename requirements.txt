@@ -11,4 +11,5 @@ numpy
 pandas
 snowflake-connector-python[pandas]
 snowflake-sqlalchemy
-
+authlib>=1.0
+requests>=2.27.1

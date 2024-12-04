@@ -1,7 +1,6 @@
 import os
 import json
 import snowflake.connector
-from dotenv import load_dotenv
 import time
 import argparse
 from sklearn.metrics.pairwise import cosine_similarity
@@ -11,7 +10,9 @@ import threading
 from queue import Queue
 import logging
 
-load_dotenv()
+import sys
+sys.path.append("./configs")
+import etl_configs
 
 class ProductSimilarityProcessor:
     def __init__(self, connection_params):
@@ -258,18 +259,8 @@ def main():
     # Parse arguments
     args = parser.parse_args()
 
-    # Configure Snowflake connection parameters
-    connection_params = {
-        'user': os.getenv("SNOWFLAKE_USER"),
-        'password': os.getenv("SNOWFLAKE_PASSWORD"),
-        'account': os.getenv("SNOWFLAKE_ACCOUNT"),
-        'warehouse': os.getenv("SNOWFLAKE_WAREHOUSE"),
-        'database': os.getenv("SNOWFLAKE_DATABASE"),
-        'schema': os.getenv("SNOWFLAKE_SCHEMA"),
-    }
-
     # Initialize processor
-    processor = ProductSimilarityProcessor(connection_params)
+    processor = ProductSimilarityProcessor(etl_configs.connection_params)
 
     # Start timing
     start_time = time.time()

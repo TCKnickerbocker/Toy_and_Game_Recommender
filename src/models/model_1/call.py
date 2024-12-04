@@ -1,21 +1,11 @@
-from dotenv import load_dotenv
 import snowflake.connector
-import os
 import sys
 sys.path.append("../")
+sys.path.append("../configs")
 import helper_functions
+import model_config
 
-# Load environment variables
-load_dotenv()
-
-conn = snowflake.connector.connect(
-    user=os.getenv("SNOWFLAKE_USER"),
-    password=os.getenv("SNOWFLAKE_PASSWORD"),
-    account=os.getenv("SNOWFLAKE_ACCOUNT"),
-    warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-    database=os.getenv("SNOWFLAKE_DATABASE"),
-    schema=os.getenv("SNOWFLAKE_SCHEMA")
-)
+conn = snowflake.connector.connect(model_config.CONNECTION_PARAMS)
 
 
 productID_to_query = 'B09S19HKSB'

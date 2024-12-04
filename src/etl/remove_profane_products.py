@@ -1,16 +1,12 @@
-import os
 import snowflake.connector
 from dotenv import load_dotenv
-from better_profanity import profanity
+from better_profanity.profanity import contains_profanity as library_profanity_check
 import time
+import sys
+import concurrent.futures
+sys.path.append("./configs")
+import etl_configs
 
-load_dotenv()
-
-'''
-Hard-coded fix:
-load_additional_inappropriate_phrases is used because profanity.contains_profanity does not flag certain phrases 
-as inappropriate which we deem to be inappropriate for children.
-'''
 def load_additional_inappropriate_phrases(filename='inappropriate_phrases.txt'):
     """
     Load additional inappropriate phrases from a file.
@@ -59,18 +55,65 @@ def is_text_inappropriate(text):
 
     # Combine with existing profanity check
     return (
-        profanity.contains_profanity(text) or 
-        phrases_found
+        phrases_found or 
+        library_profanity_check(text)
     )
 
-def remove_inappropriate_products(conn, source_table, batch_size=1000):
+def process_batch(conn, source_table, offset, batch_size):
     """
-    Efficiently remove products with inappropriate titles or store names.
+    Process a specific batch of products for inappropriate content.
+    
+    Args:
+        conn (snowflake.connector.connection): Active Snowflake connection.
+        source_table (str): Name of the source table.
+        offset (int): Starting offset for the batch.
+        batch_size (int): Number of rows to process in this batch.
+    
+    Returns:
+        list: List of productid values for inappropriate products in this batch.
+    """
+    try:
+        cur = conn.cursor()
+        
+        batch_query = f"""
+        SELECT productid, title, store, original_description, original_features 
+        FROM {source_table} 
+        ORDER BY productid
+        LIMIT {batch_size}
+        OFFSET {offset}
+        """
+        cur.execute(batch_query)
+        columns = [desc[0] for desc in cur.description]
+        
+        product_ids_to_delete = []
+        
+        # Process batch
+        for row in cur.fetchall():
+            row_dict = dict(zip(columns, row))
+            
+            # Check delete product if inappropriate           
+            if is_text_inappropriate(str(row_dict)):
+                product_ids_to_delete.append(row_dict['PRODUCTID'])
+        
+        cur.close()
+        return product_ids_to_delete
+    
+    except snowflake.connector.Error as e:
+        print(f"Snowflake Error in batch processing: {e}")
+        return []
+    except Exception as e:
+        print(f"Unexpected Error in batch processing: {e}")
+        return []
+
+def remove_inappropriate_products(conn, source_table, batch_size=1000, max_workers=8):
+    """
+    Efficiently remove products with inappropriate titles or store names using multithreading.
     
     Args:
         conn (snowflake.connector.connection): Active Snowflake connection.
         source_table (str): Name of the source table.
         batch_size (int): Number of rows to process in each batch.
+        max_workers (int): Maximum number of concurrent threads.
     
     Returns:
         list: List of productid values for inappropriate products removed.
@@ -78,44 +121,24 @@ def remove_inappropriate_products(conn, source_table, batch_size=1000):
     try:
         cur = conn.cursor()
         
-        fetch_query = f"""
-        SELECT productid, title, store 
-        FROM {source_table} 
-        ORDER BY productid
-        """
-        cur.execute(fetch_query)
-        columns = [desc[0] for desc in cur.description]
+        # Get total number of rows
+        count_query = f"SELECT COUNT(*) FROM {source_table}"
+        cur.execute(count_query)
+        total_rows = cur.fetchone()[0]
         
         product_ids_to_delete = []
-        offset = 0
         
-        while True:
-            # Process data in batches to reduce memory load
-            batch_query = f"""
-            {fetch_query}
-            LIMIT {batch_size}
-            OFFSET {offset}
-            """
-            cur.execute(batch_query)
+        # Use ThreadPoolExecutor for concurrent batch processing
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Create futures for each batch
+            futures = [
+                executor.submit(process_batch, conn, source_table, offset, batch_size)
+                for offset in range(0, total_rows, batch_size)
+            ]
             
-            batch_rows = cur.fetchall()
-            if not batch_rows:
-                break
-            
-            # Process batch
-            for row in batch_rows:
-                row_dict = dict(zip(columns, row))
-                
-                # Check for inappropriate content
-                inappropriate_checks = [
-                    is_text_inappropriate(str(row_dict.get('TITLE', ''))),
-                    is_text_inappropriate(str(row_dict.get('STORE', '')))
-                ]
-                
-                if any(inappropriate_checks):
-                    product_ids_to_delete.append(row_dict['PRODUCTID'])
-            
-            offset += batch_size
+            # Collect results from futures
+            for future in concurrent.futures.as_completed(futures):
+                product_ids_to_delete.extend(future.result())
         
         # Bulk delete inappropriate products
         if product_ids_to_delete:
@@ -149,25 +172,18 @@ def remove_inappropriate_products(conn, source_table, batch_size=1000):
             cur.close()
 
 def main():
-    # Connect to Snowflake
-    conn = snowflake.connector.connect(
-        user=os.getenv("SNOWFLAKE_USER"),
-        password=os.getenv("SNOWFLAKE_PASSWORD"),
-        account=os.getenv("SNOWFLAKE_ACCOUNT"),
-        warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-        database=os.getenv("SNOWFLAKE_DATABASE"),
-        schema=os.getenv("SNOWFLAKE_SCHEMA")
-    )
+    conn = snowflake.connector.connect(etl_configs.CONNECTION_PARAMS)
     
     try:
         start_time = time.time()
-        
         print(f"Loaded {len(ADDITIONAL_INAPPROPRIATE_PHRASES)} additional inappropriate phrases")
         
         # Remove inappropriate products and get their IDs
         removed_product_ids = remove_inappropriate_products(
             conn, 
-            source_table='preprocessed_product_info'
+            source_table='preprocessed_product_info',
+            batch_size=1000,  # Adjust batch size as needed
+            max_workers=8     # Adjust number of workers based on your system
         )
         
         execution_time = time.time() - start_time

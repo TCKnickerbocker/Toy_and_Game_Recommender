@@ -1,12 +1,12 @@
 import os
 import snowflake.connector
-from dotenv import load_dotenv
 from openai import OpenAI
 import concurrent.futures
 import logging
 from typing import List, Dict, Tuple
-
-load_dotenv()
+import sys
+sys.path.append("./configs")
+import etl_configs
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -44,7 +44,7 @@ class ProductDescriptionUpdater:
             
             # Fetch product data
             query = f"""
-            SELECT productId, Title, Details, Store
+            SELECT productId, Title, Details, Store, Original_Description, Original_Features
             FROM {source_table}
             where Description is null
             """
@@ -70,6 +70,9 @@ class ProductDescriptionUpdater:
             description = product["details"]
             store = product["store"]
             productId = product["productId"]
+            original_description = product["original_description"]
+            original_features = product["original_features"]
+            
 
             prompt = f"""
             Extract the key information from the following inputs for creating text embeddings:
@@ -82,6 +85,12 @@ class ProductDescriptionUpdater:
             
             Store:
             {store}
+            
+            Original_Description:
+            {original_description}
+            
+            Original_Features:
+            {original_features}
             
             Extraction should follow this format:
             - Summarized product name and key details (e.g., product type, audience).
@@ -167,20 +176,10 @@ class ProductDescriptionUpdater:
             logger.info("Product description update complete")
 
 def main():
-    # Configure connection parameters from environment variables
-    connection_params = {
-        'user': os.getenv("SNOWFLAKE_USER"),
-        'password': os.getenv("SNOWFLAKE_PASSWORD"),
-        'account': os.getenv("SNOWFLAKE_ACCOUNT"),
-        'warehouse': os.getenv("SNOWFLAKE_WAREHOUSE"),
-        'database': os.getenv("SNOWFLAKE_DATABASE"),
-        'schema': os.getenv("SNOWFLAKE_SCHEMA"),
-    }
-
     source_table = "most_popular_products"
     
     # Initialize updater with optional max_workers parameter
-    updater = ProductDescriptionUpdater(connection_params, max_workers=10)
+    updater = ProductDescriptionUpdater(etl_configs.CONNECTION_PARAMS, max_workers=10)
     updater.process_products(source_table)
 
 if __name__ == "__main__":

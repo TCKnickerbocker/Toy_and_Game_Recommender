@@ -3,8 +3,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import snowflake.connector
-import os
 import numpy as np
+import sys
+sys.path.append("./configs")
+import etl_configs
 
 class TFIDFProcessor:
     def __init__(self, connection_params):
@@ -101,19 +103,10 @@ class TFIDFProcessor:
             return top_n_similar_products
 
 def main():
-    # Initialize parameters
-    connection_params = {
-        'user': os.getenv("SNOWFLAKE_USER"),
-        'password': os.getenv("SNOWFLAKE_PASSWORD"),
-        'account': os.getenv("SNOWFLAKE_ACCOUNT"),
-        'warehouse': os.getenv("SNOWFLAKE_WAREHOUSE"),
-        'database': os.getenv("SNOWFLAKE_DATABASE"),
-        'schema': os.getenv("SNOWFLAKE_SCHEMA"),
-    }
     product_table = "most_popular_products"
     tfidf_table = "tfidf_vectors"
 
-    processor = TFIDFProcessor(connection_params)
+    processor = TFIDFProcessor(etl_configs.CONNECTION_PARAMS)
     products = processor.fetch_product_descriptions(product_table)
     vectorizer, tfidf_matrix = processor.compute_tfidf(products["description"])
     processor.save_tfidf_to_snowflake(products["productId"], tfidf_matrix, tfidf_table)

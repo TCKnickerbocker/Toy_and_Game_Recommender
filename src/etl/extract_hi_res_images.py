@@ -1,13 +1,12 @@
-import os
 import pandas as pd
-from dotenv import load_dotenv
 import snowflake.connector
 import json
-
-# Load environment variables
-load_dotenv()
+import sys
+sys.path.append("./configs")
+import etl_configs
 
 def update_image_column(
+    connection_params,
     table_name="most_popular_products", 
     modify_column=True
 ):
@@ -22,19 +21,12 @@ def update_image_column(
     Returns:
         None
     """
-    conn = snowflake.connector.connect(
-        user=os.getenv("SNOWFLAKE_USER"),
-        password=os.getenv("SNOWFLAKE_PASSWORD"),
-        account=os.getenv("SNOWFLAKE_ACCOUNT"),
-        warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-        database=os.getenv("SNOWFLAKE_DATABASE"),
-        schema=os.getenv("SNOWFLAKE_SCHEMA")
-    )
+    conn = snowflake.connector.connect(connection_params)
 
     try:
         cur = conn.cursor()
 
-        # F
+        # Get data
         select_query = f"""
         select productid, image from {table_name};
         """
@@ -87,4 +79,5 @@ def update_image_column(
             conn.close()
 
 if __name__ == "__main__":
-    update_image_column()
+    connection_params = etl_configs.CONNECTION_PARAMS
+    update_image_column(connection_params)

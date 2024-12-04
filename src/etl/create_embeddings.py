@@ -6,23 +6,19 @@ import snowflake.connector
 from tqdm import tqdm
 from transformers import AutoModel
 
+import sys
+sys.path.append("./configs")
+import etl_configs
+
 class ProductTextEmbedder:
-    def __init__(self, model_name="jinaai/jina-embeddings-v3"):
+    def __init__(self, connection_params, model_name="jinaai/jina-embeddings-v3"):
         """
         Initialize the embedder
 
         Args:
             model_name (str): Hugging Face model name for embeddings
         """
-        # Retrieve Snowflake credentials from Colab secrets
-        self.connection_params = {
-            'user': os.getenv("SNOWFLAKE_USER"),
-            'password': os.getenv("SNOWFLAKE_PASSWORD"),
-            'account': os.getenv("SNOWFLAKE_ACCOUNT"),
-            'warehouse': os.getenv("SNOWFLAKE_WAREHOUSE"),
-            'database': os.getenv("SNOWFLAKE_DATABASE"),
-            'schema': os.getenv("SNOWFLAKE_SCHEMA"),
-        }
+        self.connection_params = connection_params
 
         # Load embedding model
         self.model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
@@ -189,7 +185,7 @@ def main():
     args = parser.parse_args()
 
     # Initialize embedder
-    embedder = ProductTextEmbedder()
+    embedder = ProductTextEmbedder(etl_configs.CONNECTION_PARAMS)
 
     # Run full job with parsed arguments
     embedder.run_embedding_pipeline(

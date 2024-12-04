@@ -1,19 +1,18 @@
-import os
 import snowflake.connector
-from dotenv import load_dotenv
 from openai import OpenAI
 import concurrent.futures
 import logging
 from typing import List, Dict, Tuple
-
-load_dotenv()
+import sys
+sys.path.append("./configs")
+import etl_configs
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI API key
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize OpenAI client
+client = OpenAI(etl_configs.OPENAI_API_KEY)
 
 class ProductSummaryGenerator:
     def __init__(self, connection_params, max_workers=10):
@@ -178,21 +177,10 @@ class ProductSummaryGenerator:
             logger.info("Product summary generation complete")
 
 def main():
-    # Configure connection parameters from environment variables
-    connection_params = {
-        'user': os.getenv("SNOWFLAKE_USER"),
-        'password': os.getenv("SNOWFLAKE_PASSWORD"),
-        'account': os.getenv("SNOWFLAKE_ACCOUNT"),
-        'warehouse': os.getenv("SNOWFLAKE_WAREHOUSE"),
-        'database': os.getenv("SNOWFLAKE_DATABASE"),
-        'schema': os.getenv("SNOWFLAKE_SCHEMA"),
-    }
-
     source_table = "most_popular_products"
     
-    # Initialize summary generator with optional max_workers parameter
-    ## If max_workers is too high, openAI will return 429 error codes
-    summary_generator = ProductSummaryGenerator(connection_params, max_workers=8) 
+    # Initialize summary generator
+    summary_generator = ProductSummaryGenerator(etl_configs.CONNECTION_PARAMS, max_workers=8) 
     summary_generator.generate_summaries(source_table)
 
 if __name__ == "__main__":

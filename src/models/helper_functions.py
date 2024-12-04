@@ -1,7 +1,6 @@
 import json
 import concurrent.futures
 
-
 def get_n_most_similar_product_ids(conn, product_id, similarity_tablename='product_description_similarity', n=8, user_id=None):
     """
     Fetch the top n most similar products to a given product_id from both product1_id and product2_id perspectives,

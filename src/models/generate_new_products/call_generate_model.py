@@ -1,9 +1,8 @@
 import sys
 import json
-import logger
 sys.path.append("../configs")
-import model_config
-from generator import CreativeProductGenerator
+from model_config import LOGGER, TESTING_USER_ID, CONNECTION_PARAMS
+from generator_funcs import CreativeProductGenerator
 
 
 def call_generate_products(user_id=None, num_products=1):
@@ -12,11 +11,11 @@ def call_generate_products(user_id=None, num_products=1):
     
     # Fall back to testing user ID if no user_id found
     if not user_id:
-        user_id = model_config.TESTING_USER_ID
-        logger.info(f"No user_id provided. Falling back to testing user ID: {user_id}")
+        user_id = TESTING_USER_ID
+        LOGGER.info(f"No user_id provided. Falling back to testing user ID: {user_id}")
     
     # Initialize creative product generator
-    product_generator = CreativeProductGenerator(model_config.CONNECTION_PARAMS, max_workers=5)
+    product_generator = CreativeProductGenerator(CONNECTION_PARAMS, max_workers=5)
     
     # Generate products
     generated_products = product_generator.generate_creative_products(

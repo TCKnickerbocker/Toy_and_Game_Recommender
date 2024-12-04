@@ -2,21 +2,16 @@ import re
 import snowflake.connector
 from openai import OpenAI
 import concurrent.futures
-import logging
 from typing import List, Dict
 import uuid
 
 import sys
 sys.path.append("../configs")
-import model_config
+from model_config import LOGGER, OPENAI_API_KEY
 
-
-# Initialize logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client
-client = OpenAI(api_key=model_config.OPENAI_API_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 class CreativeProductGenerator:
     def __init__(self, connection_params, max_workers=5):
@@ -128,7 +123,7 @@ class CreativeProductGenerator:
             return {"concept_text": new_product_concept}
 
         except Exception as e:
-            logger.error(f"Error generating product concept: {e}")
+            LOGGER.error(f"Error generating product concept: {e}")
             return {"concept_text": ""}
 
     def generate_product_image(self, product_concept: Dict, model="dall-e-3", quality="standard", size="1024x1024") -> Dict:
@@ -170,7 +165,7 @@ class CreativeProductGenerator:
             }
 
         except Exception as e:
-            logger.error(f"Error generating product image: {e}")
+            LOGGER.error(f"Error generating product image: {e}")
             return {"image_url": "", "revised_prompt": ""}
 
     def store_new_product(self, conn, product_data: List[Dict], source_table='ai_generated_products'):
@@ -248,7 +243,7 @@ class CreativeProductGenerator:
         with snowflake.connector.connect(**self.connection_params) as conn:
             # Fetch inspiration products
             inspiration_products = self.fetch_inspiration_products(conn, history_limit=10, user_id=user_id)
-            logger.info(f"Using {len(inspiration_products)} products for inspiration")
+            LOGGER.info(f"Using {len(inspiration_products)} products for inspiration")
 
             # Process products concurrently
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -289,9 +284,9 @@ class CreativeProductGenerator:
                         generated_products.append(parsed_product)
 
                     except Exception as e:
-                        logger.error(f"Error processing product generation: {e}")
+                        LOGGER.error(f"Error processing product generation: {e}")
 
-            logger.info(f"Product generation complete")
+            LOGGER.info(f"Product generation complete")
             
             return generated_products
 

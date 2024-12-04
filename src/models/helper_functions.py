@@ -5,7 +5,7 @@ import boto3
 import requests
 import os
 from urllib.parse import urlparse
-import logger
+from model_config import LOGGER
 
 
 def get_n_most_similar_product_ids(conn, product_id, similarity_tablename='product_description_similarity', n=8, user_id=None):
@@ -81,9 +81,8 @@ def get_n_most_similar_product_ids(conn, product_id, similarity_tablename='produ
         cur.execute(query, (product_id, product_id, n, product_id, product_id, n, n))
         top_similar_products = cur.fetchall()
         
-    # Extract just the product IDs from the result
+    # Extract the product IDs from the result
     similar_product_ids = [row[0] for row in top_similar_products]
-    
     return similar_product_ids
 
 
@@ -123,7 +122,7 @@ def get_products_by_product_ids(conn, product_ids, product_table='most_popular_p
 
 
 # TODO fix
-def store_product_image_in_s3(product_id, original_image_url, image_snowflake_tablename, s3name):
+def store_product_image_in_s3(product_id, original_image_url, s3name):
     """
     Download an image from a URL and store it in an S3 bucket.
 
@@ -135,13 +134,13 @@ def store_product_image_in_s3(product_id, original_image_url, image_snowflake_ta
         # Get the image URL from the product data
         temp_image_url = original_image_url
         if not temp_image_url:
-            logger.warning("No image URL found in store_image_in_s3")
+            LOGGER.warning("No image URL found in store_image_in_s3")
             return None
 
         # Download the image
         response = requests.get(temp_image_url)
         if response.status_code != 200:
-            logger.error(f"Failed to download image from {temp_image_url}")
+            LOGGER.error(f"Failed to download image from {temp_image_url}")
             return None
 
         # Prepare file details
@@ -172,10 +171,54 @@ def store_product_image_in_s3(product_id, original_image_url, image_snowflake_ta
         # Clean up local file
         os.remove(local_filename)
 
-        logger.info(f"Image stored in S3 at {s3_url}")
+        LOGGER.info(f"Image stored in S3 at {s3_url}")
         return s3_url
 
     except Exception as e:
-        logger.error(f"Error storing image in S3: {e}")
+        LOGGER.error(f"Error storing image in S3: {e}")
         return None
     
+
+def insert_new_image_into_table(conn, product_id, image_url, table_name="ai_generated_products", image_column_name="image"):
+    """
+    Insert a new image URL into the specified table for a given product ID.
+
+    :param conn: Connection object for the database.
+    :param product_id: The ID of the product to associate with the image.
+    :param image_url: The URL of the image to be inserted.
+    :param table_name: The name of the target table (default: 'ai_generated_products').
+    :param image_column_name: The name of the column to insert the image URL into (default: 'image').
+    """
+    query = f"""
+        UPDATE {table_name}
+        SET {image_column_name} = %s
+        WHERE product_id = %s
+    """
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, (image_url, product_id))
+            conn.commit()
+            print(f"Image URL successfully updated for product_id: {product_id}")
+    except Exception as e:
+        print(f"Error inserting image into table: {e}")
+
+
+def get_recently_rated_products_info(conn, user_id, num_recently_rated):
+    """
+    Returns [(productID, user's rating, if user favorited product)]
+    """
+    query = """
+    SELECT parent_asin, rating, favorite FROM user_ratings 
+    WHERE user_id = %s
+    ORDER BY review_id DESC
+    LIMIT %s
+    """
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, (user_id, num_recently_rated))
+            top_similar_products = cur.fetchall()
+            recently_rated_products = [(row[0], row[1], row[2]) for row in top_similar_products]
+            return recently_rated_products
+    except Exception as e:
+        print(f"Error getting recently_rated_products e: {e}")
+        return None

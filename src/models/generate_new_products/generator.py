@@ -5,9 +5,11 @@ import concurrent.futures
 import logging
 from typing import List, Dict
 import uuid
+
 import sys
 sys.path.append("../configs")
 import model_config
+
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -27,7 +29,7 @@ class CreativeProductGenerator:
         self.connection_params = connection_params
         self.max_workers = max_workers
 
-    def fetch_inspiration_products(self, conn, limit=10, user_id=None) -> List[Dict]:
+    def fetch_inspiration_products(self, conn, history_limit=8, user_id=None) -> List[Dict]:
         """
         Fetch product data to inspire new product creation.
 
@@ -51,8 +53,8 @@ class CreativeProductGenerator:
             WHERE 
                 u.user_id = '{user_id}'
             ORDER BY 
-                u.RATING DESC NULLS LAST
-            LIMIT {limit};
+                RANDOM(), u.RATING DESC NULLS LAST
+            LIMIT {history_limit};
             """
             cur.execute(query)
             rows = cur.fetchall()
@@ -89,27 +91,26 @@ class CreativeProductGenerator:
             ])
 
             prompt = f"""
-            Make a new new game or toy that will appeal to this user given their past ratings:
+            Make a new game or toy that will appeal to this user given their past ratings:
 
             {user_history}
 
-            Generate a completely new unique, interesting, and creative game or toy that:
+            Generate a new, interesting, and creative game or toy that:
             1. Has a catchy, memorable name
-            2. Includes a compelling and interesting initial product description
+            2. Includes a compelling and engaging initial product description
             3. Targets a specific audience or use case
 
             Provide the following details in the specified format. Please note that the '@@@' MUST precede its respective sections:
-            @@@ Product Name (product name here)
+            @@@ Product Title (product name here)
             @@@ Product Description (max 120 words, should contain an engaging for the new product and resemble the descriptions above)
             @@@ Product Specs (max 120 words, should contain specifications for the new product and resemble the specs above)
-            @@@ Price (a rough estimation as a float)
             
             Like:
             @@@ Monopoly
             @@@ 💸 Some text
             @@@ Specs of Monopoly
-            @@@ 45.345
             Please be as creative as possible while reasonably inferring that the product will appeal to some dimension of this person's preferences.
+            Some domains you may want to consider are: board games, toys, video games, games for families. Try to avoid the topic of outer space.
             """
 
             response = client.chat.completions.create(
@@ -172,112 +173,81 @@ class CreativeProductGenerator:
             logger.error(f"Error generating product image: {e}")
             return {"image_url": "", "revised_prompt": ""}
 
-    def _safe_extract_text(self, lines, pattern, default=""):
+    def store_new_product(self, conn, product_data: List[Dict], source_table='ai_generated_products'):
         """
-        Safely extract text matching a pattern from lines.
-        
-        :param lines: List of lines to search
-        :param pattern: Regex pattern to match
-        :param default: Default value if no match is found
-        :return: Extracted text or default
+        Store newly generated products in the Snowflake database.
+
+        :param conn: Snowflake connection object
+        :param products_data: List of dictionaries, each containing new product details
+        :param source_table: Name of the target table
         """
-        for line in lines:
-            match = re.search(pattern, line, re.IGNORECASE)
-            if match:
-                # Remove the pattern and strip whitespace
-                extracted = re.sub(pattern, '', line, flags=re.IGNORECASE).strip()
-                return extracted if extracted else default
-        return default
+        try:
+            with conn.cursor() as cur:
+                # Ensure the table has necessary columns
+                create_table_query = f"""
+                CREATE TABLE IF NOT EXISTS {source_table} (
+                    productId VARCHAR(12) PRIMARY KEY,
+                    Title VARCHAR,
+                    Summary VARCHAR(1024),
+                    Description VARCHAR(2048),
+                    ImageUrl TEXT,
+                    ImagePrompt TEXT
+                )
+                """
+                cur.execute(create_table_query)
 
-    def store_new_product(self, conn, product_data: Dict, source_table='ai_generated_products'):
-            """
-            Store the newly generated product in the Snowflake database.
+                # Prepare insert query
+                insert_query = f"""
+                INSERT INTO {source_table} 
+                (productId, Title, Summary, Description, ImageUrl, ImagePrompt)
+                VALUES 
+                """
 
-            :param conn: Snowflake connection object
-            :param source_table: Name of the target table
-            :param product_data: Dictionary containing new product details
-            """
-            try:
-                # Generate a unique product ID
+                # Collect insert values
+                values_list = []
                 product_id = str(uuid.uuid4())[:12]
-                print(f"Storing new product with ID: {product_id}")
+                concept_text = product_data['concept_text']
+
+                # Parse concept text into components
+                pattern = r"@@@\s*(.*?)\s*(?=@@@|$)"
+                sections = re.findall(pattern, concept_text, re.DOTALL)
+                title = sections[0].strip().replace("'", "''") if len(sections) > 0 else ''
+                summary = sections[1].strip().replace("'", "''") if len(sections) > 1 else ''
+                description = sections[2].strip().replace("'", "''") if len(sections) > 2 else ''
                 
-                with conn.cursor() as cur:
-                    # Ensure the table has necessary columns
-                    create_table_query = f"""
-                    CREATE TABLE IF NOT EXISTS {source_table} (
-                        productId VARCHAR(12) PRIMARY KEY,
-                        Title VARCHAR,
-                        Summary VARCHAR(1024),
-                        Description VARCHAR(2048),
-                        ImageUrl TEXT,
-                        ImagePrompt TEXT,
-                        Concept TEXT
-                    )
-                    """
-                    cur.execute(create_table_query)
-                    
-                    # Extract details from the concept text
-                    concept_text = product_data['concept_text']
-                    
-                    pattern = r"@@@\s*(.*?)\s*(?=@@@|$)"
+                image_url = product_data.get('image_url', '').replace("'", "''")
+                revised_prompt = product_data.get('revised_prompt', '').replace("'", "''")
 
-                    # Find all sections
-                    sections = re.findall(pattern, concept_text, re.DOTALL)
-                    title, summary, description, price = None, None, None, None
-                    
-                    for idx, section in enumerate(sections, 1):
-                        if idx==1:
-                            title = section.strip()
-                        elif idx==2:
-                            summary=section.strip()
-                        elif idx==3:
-                            description=section.strip()
-                        elif idx==4:
-                            price=section.strip()                        
-                        
-                    # Sanitize inputs to prevent SQL injection
-                    title = title.replace("'", "''")
-                    summary = summary.replace("'", "''")
-                    description = description.replace("'", "''")
-                    price = price.replace("'", "''")
-                    
-                    # Insert the new product
-                    insert_query = f"""
-                    INSERT INTO {source_table} 
-                    (productId, Title, Summary, Description, ImageUrl, Concept)
-                    VALUES (
-                        '{product_id}', 
-                        '{title}', 
-                        '{summary}', 
-                        '{description}', 
-                        '{product_data.get('image_url', '')}',
-                        '{concept_text.replace("'", "''")}')
-                    """
-                    
-                    # Execute the query with the provided values
-                    cur.execute(insert_query)
-                    conn.commit()
+                # Add to the values list
+                values_list.append(
+                    f"('{product_id}', '{title}', '{summary}', '{description}', '{image_url}', '{revised_prompt}')"
+                )
+                # Combine all values into the query
+                final_insert_query = insert_query + ",\n".join(values_list)
+                cur.execute(final_insert_query)
+                conn.commit()
 
-                    logging.info(f"New product {product_id} stored successfully")
-                    
-                    return product_id
-            
-            except Exception as e:
-                logging.error(f"Error storing new product: {e}")
-                return None
+                logging.info(f"Product {title} with id {product_id} store successfully")
+                return product_id
 
-    def generate_creative_products(self, source_table='most_popular_products', target_table='generated_products', num_products=5, user_id=None):
+        except Exception as e:
+            logging.error(f"Error storing new products: {e}")
+            return None
+
+
+    def generate_creative_products(self, target_table='generated_products', num_products=4, user_id=None) -> List[Dict]:
         """
         Main processing function to generate creative new products.
 
-        :param source_table: Name of the source table for inspiration
         :param target_table: Name of the table to store new products
         :param num_products: Number of products to generate
+        :return: List of generated product dictionaries
         """
+        generated_products = []
+
         with snowflake.connector.connect(**self.connection_params) as conn:
             # Fetch inspiration products
-            inspiration_products = self.fetch_inspiration_products(conn, limit=10, user_id=user_id)
+            inspiration_products = self.fetch_inspiration_products(conn, history_limit=10, user_id=user_id)
             logger.info(f"Using {len(inspiration_products)} products for inspiration")
 
             # Process products concurrently
@@ -299,14 +269,53 @@ class CreativeProductGenerator:
                         
                         # Generate image for the concept
                         product_image = self.generate_product_image(product_concept)
-                        print("Getting product data")
+                        
                         # Merge concept and image data
                         full_product_data = {**product_concept, **product_image}
                         
-                        # Store the new product
-                        self.store_new_product(conn, full_product_data, target_table)
+                        # Store the new product in Snowflake
+                        product_id = self.store_new_product(conn, full_product_data, target_table)
+                        
+                        # Parse the concept text into a more structured format
+                        parsed_product = self._parse_product_concept(full_product_data['concept_text'])
+                        
+                        # Add additional fields
+                        parsed_product.update({
+                            'productId': product_id,
+                            'imageUrl': full_product_data.get('image_url', ''),
+                            'imagePrompt': full_product_data.get('revised_prompt', '')
+                        })
+                        
+                        generated_products.append(parsed_product)
 
                     except Exception as e:
                         logger.error(f"Error processing product generation: {e}")
 
             logger.info(f"Product generation complete")
+            
+            return generated_products
+
+    def _parse_product_concept(self, concept_text: str) -> Dict:
+        """
+        Parse the product concept text into a structured dictionary.
+
+        :param concept_text: Raw concept text from product generation
+        :return: Structured product dictionary
+        """
+        # Extract sections using regex
+        pattern = r"@@@\s*(.*?)\s*(?=@@@|$)"
+        sections = re.findall(pattern, concept_text, re.DOTALL)
+        
+        # Ensure we have enough sections
+        while len(sections) < 4:
+            sections.append('')
+
+        # Create a structured product dictionary
+        product = {
+            'title': sections[0].strip(),
+            'summary': sections[1].strip(),
+            'description': sections[2].strip(),
+        }
+        
+        return product
+

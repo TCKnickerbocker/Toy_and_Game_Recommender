@@ -5,7 +5,14 @@ from dotenv import load_dotenv, find_dotenv
 import snowflake.connector
 import os
 from os import environ as env
+import logger
 import sys
+sys.path.append("../models")
+sys.path.append("../models/generate_new_products")
+sys.path.append("../models/model_1")
+from call_generate_model import call_generate_products
+from call_model_1 import call_model_1
+
 
 app = Flask(__name__)
 app.secret_key = env.get("APP_SECRET_KEY")
@@ -175,24 +182,66 @@ def initial_products():
     
     return {"message": "Something went wrong with fetching initial products"}, 400
 
-"""
-Get N Most Similar Products Based on Past Ratings
-    - We'll now need to return the most similar products based on what the user's previously rated an item
-    - Maybe use the ratings as weights in some sort of equation?
-"""
 @app.route("/api/most_similar_products", methods=["GET"])
 def most_similar_products():
+    """
+    API endpoint to retrieve the most similar products based on a given product ID.
+    Accepts query parameters for the product ID, number of results, and whether to
+    use title-based similarity (else defaults to description-based similarity).
 
-    return
+    Query Parameters:
+        - product_id: str (required)
+        - n: int (optional, default=8)
+        - by_title: bool (optional, default=False)
+
+    Returns:
+        - JSON response containing the most similar products or an error message.
+    """
+    try:
+        # Extract query parameters
+        product_id = request.args.get('product_id')
+        n = int(request.args.get('n', 8))  # Default to 8 if not provided
+        by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
+
+        if not product_id:
+            return jsonify({"error": "Missing required parameter: product_id"}), 400
+
+        # Call the model function
+        product_ids = call_model_1(product_id=product_id, n=n, by_title=by_title)
+
+        # Return a success response
+        return jsonify({"product_id": product_id, "most_similar_products": product_ids}), 200
+    except Exception as e:
+        # Log the error (optional: use a logging library for better logs)
+        print(f"Error in /api/most_similar_products: {e}")
+
+        # Return an error response
+        return jsonify({"error": "Failed to retrieve most similar products", "details": str(e)}), 500
 
 """
 Generate Fake Product
     - Will call the NLP Model to generate a fake product based on the user's ratings
 """
 @app.route("/api/generate_fake_product", methods=["GET"])
-def generate_fake_product():
+def generate_fake_products():
+    try:
+        user_id = request.args.get('user_id')
+        num_products = request.args.get('num_products')
+        if num_products > 8:
+            return jsonify({'SAFETY CATCH: tried to generate too many products'}), 403
+        # Call the product generation function
+        generated_products = call_generate_products.call_generate_products(user_id=user_id, num_products=num_products)
+        return jsonify(generated_products), 200
 
-    return
+    except Exception as e:
+        # Log the error
+        logger.error(f"Error generating fake products: {e}")
+        
+        # Return an error response
+        return jsonify({
+            "error": "Failed to generate products",
+            "details": str(e)
+        }), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)

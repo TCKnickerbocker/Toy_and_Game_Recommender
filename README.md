@@ -1,7 +1,5 @@
 # Amazon Toy and Games Recommender
 ## Thomas Knickerbocker, Owen Ratgen, Yashas Acharya
-<br>
-
 ### How to Run the Project
 1. Open a terminal
 2. Go to the src/frontend folder

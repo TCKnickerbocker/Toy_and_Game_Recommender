@@ -5,7 +5,9 @@ import boto3
 import requests
 import os
 from urllib.parse import urlparse
-from model_config import LOGGER
+import sys
+sys.path.append("/configs")
+from configs import model_config
 
 
 def get_n_most_similar_product_ids(conn, product_id, similarity_tablename='product_description_similarity', n=8, user_id=None):
@@ -95,7 +97,7 @@ def get_products_by_product_ids(conn, product_ids, product_table='most_popular_p
     def fetch_product_data(product_id):
         with conn.cursor() as cur:
             cur.execute(f"""
-            SELECT productid, title, image, summary
+            SELECT productid, title, image, original_features
             FROM {product_table}
             WHERE productid = %s
             """, (product_id,))
@@ -118,7 +120,7 @@ def get_products_by_product_ids(conn, product_ids, product_table='most_popular_p
     products = [result for result in results if result is not None]
 
     # Convert the results to JSON format
-    return json.dumps(products)
+    return products
 
 
 # TODO fix
@@ -134,13 +136,13 @@ def store_product_image_in_s3(product_id, original_image_url, s3name):
         # Get the image URL from the product data
         temp_image_url = original_image_url
         if not temp_image_url:
-            LOGGER.warning("No image URL found in store_image_in_s3")
+            model_config.LOGGER.warning("No image URL found in store_image_in_s3")
             return None
 
         # Download the image
         response = requests.get(temp_image_url)
         if response.status_code != 200:
-            LOGGER.error(f"Failed to download image from {temp_image_url}")
+            model_config.LOGGER.error(f"Failed to download image from {temp_image_url}")
             return None
 
         # Prepare file details
@@ -171,11 +173,11 @@ def store_product_image_in_s3(product_id, original_image_url, s3name):
         # Clean up local file
         os.remove(local_filename)
 
-        LOGGER.info(f"Image stored in S3 at {s3_url}")
+        model_config.LOGGER.info(f"Image stored in S3 at {s3_url}")
         return s3_url
 
     except Exception as e:
-        LOGGER.error(f"Error storing image in S3: {e}")
+        model_config.LOGGER.error(f"Error storing image in S3: {e}")
         return None
     
 

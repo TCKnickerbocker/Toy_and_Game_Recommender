@@ -52,29 +52,53 @@ export default function RecommendationsPage() {
   };
 
   // Gets the initial 8 items for a user
-  const getInitialItems = async () => {
-    console.log("FETCHING INITIAL DATA");
+  const getItems = async (kind: string, user_id?: string) => {
+    console.log("FETCHING DATA");
     try {
       setItems([]);
-      const response = await fetch("/api/initial_products", { method: "GET" });
+      let response;
+
+      if (kind == "similar") {
+        response = await fetch(
+          `/api/most_similar_products?user_id=${user_id}`,
+          { method: "GET" },
+        );
+      } else {
+        response = await fetch("/api/initial_products", { method: "GET" });
+      }
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
 
       const responseData = await response.json();
-      for (const item of responseData) {
+      console.log(typeof responseData);
+      for (const i in responseData) {
+        const itemName = responseData[i]["title"]
+          ? responseData[i]["title"]
+          : responseData[i][0];
+        const itemDescription = responseData[i]["summary"]
+          ? responseData[i]["summary"]
+          : responseData[i][6];
+        const itemId = responseData[i]["productid"]
+          ? responseData[i]["productid"]
+          : responseData[i][3];
+        const imgUrl = responseData[i]["image"]
+          ? responseData[i]["image"]
+          : responseData[i][8];
+
+        console.log(responseData[i]["productid"]);
         setItems((prevItems) => [
           ...prevItems,
           {
-            productName: item[0],
-            description: item[6]
+            productName: itemName,
+            description: itemDescription
               .trim()
               .slice(1, -1)
               .split('",')
               .map((line: string) => line.trim().replace(/^"/, "")),
-            id: item[3],
-            imgUrl: item[8],
+            id: itemId,
+            imgUrl: imgUrl,
           },
         ]);
       }
@@ -96,7 +120,7 @@ export default function RecommendationsPage() {
   }, [user]);
 
   useEffect(() => {
-    getInitialItems();
+    getItems("initial");
   }, []);
 
   useEffect(() => {
@@ -161,7 +185,7 @@ export default function RecommendationsPage() {
   };
 
   const handleRefresh = () => {
-    getInitialItems();
+    getItems("similar", user?.user_id);
     setRefreshesLeft(refreshesLeft - 1);
   };
 

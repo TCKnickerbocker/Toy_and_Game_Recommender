@@ -7,11 +7,11 @@ import uuid
 
 import sys
 sys.path.append("../configs")
-from model_config import LOGGER, OPENAI_API_KEY
+from configs import model_config
 
 
 # Initialize OpenAI client
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=model_config.OPENAI_API_KEY)
 
 class CreativeProductGenerator:
     def __init__(self, connection_params, max_workers=5):
@@ -123,7 +123,7 @@ class CreativeProductGenerator:
             return {"concept_text": new_product_concept}
 
         except Exception as e:
-            LOGGER.error(f"Error generating product concept: {e}")
+            model_config.LOGGER.error(f"Error generating product concept: {e}")
             return {"concept_text": ""}
 
     def generate_product_image(self, product_concept: Dict, model="dall-e-3", quality="standard", size="1024x1024") -> Dict:
@@ -165,7 +165,7 @@ class CreativeProductGenerator:
             }
 
         except Exception as e:
-            LOGGER.error(f"Error generating product image: {e}")
+            model_config.LOGGER.error(f"Error generating product image: {e}")
             return {"image_url": "", "revised_prompt": ""}
 
     def store_new_product(self, conn, product_data: List[Dict], source_table='ai_generated_products'):
@@ -243,7 +243,7 @@ class CreativeProductGenerator:
         with snowflake.connector.connect(**self.connection_params) as conn:
             # Fetch inspiration products
             inspiration_products = self.fetch_inspiration_products(conn, history_limit=10, user_id=user_id)
-            LOGGER.info(f"Using {len(inspiration_products)} products for inspiration")
+            model_config.LOGGER.info(f"Using {len(inspiration_products)} products for inspiration")
 
             # Process products concurrently
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -284,9 +284,9 @@ class CreativeProductGenerator:
                         generated_products.append(parsed_product)
 
                     except Exception as e:
-                        LOGGER.error(f"Error processing product generation: {e}")
+                        model_config.LOGGER.error(f"Error processing product generation: {e}")
 
-            LOGGER.info(f"Product generation complete")
+            model_config.LOGGER.info(f"Product generation complete")
             
             return generated_products
 

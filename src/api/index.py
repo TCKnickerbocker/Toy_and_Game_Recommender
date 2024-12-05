@@ -78,6 +78,34 @@ def check_rating_exists(user_id, product_id):
     
     return False
 
+# Will delete all the user's ratings if they have more than 100
+def check_user_rating_threshold(user_id):
+    try:
+        conn = setup_connection()
+
+        cur = conn.cursor()
+
+        cur.execute("""
+            DELETE FROM user_ratings
+            WHERE user_id IN (
+                SELECT user_id
+                FROM user_ratings
+                GROUP BY user_id
+                HAVING COUNT(*) > 100
+            )
+            AND user_id = %s;
+            """, (user_id))
+        conn.commit()
+    except snowflake.connector.Error as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    
+    return
+
+
+
 # @app.route("/recommend", methods=["GET"])
 # def recommend():
 #     user_id = int(request.args.get("user_id"))
@@ -100,23 +128,18 @@ def create_user():
     user_id = data['user_id']
     email = data['email']
 
-    
-
     try:
         conn = setup_connection()
 
         cur = conn.cursor()
-
-        cur.execute("CREATE OR REPLACE TABLE user_ratings (REVIEW_ID INT IDENTITY PRIMARY KEY, USER_ID VARCHAR(255), PARENT_ASIN VARCHAR(50), RATING FLOAT, FAVORITE BOOLEAN, FOREIGN KEY (user_id) REFERENCES user_accounts(user_id) ON DELETE CASCADE);")
 
         if check_user_exists(user_id) == True:
             print("ISSUE: This user already exists")
             conn.commit()
             conn.close()
             return {"message": "User already exists"}, 400
-        else:
-            cur.execute("INSERT INTO user_accounts (user_id, email) VALUES (%s, %s)", (user_id, email))
-        
+
+        cur.execute("INSERT INTO user_accounts (user_id, email) VALUES (%s, %s)", (user_id, email))
 
         conn.commit()
     except snowflake.connector.Error as e:
@@ -144,6 +167,8 @@ def insert_user_reviews():
         conn = setup_connection()
 
         cur = conn.cursor()
+
+        check_user_rating_threshold(user_id)
 
         cur.execute("INSERT INTO user_ratings (user_id, parent_asin, rating, favorite) VALUES (%s, %s, %s, %s)", (user_id, product_id, rating, favorite))
 
@@ -199,19 +224,19 @@ def most_similar_products():
     """
     try:
         # Extract query parameters
-        user_id = request.args.get('user_id', "dummyUser")
+        user_id = request.args.get('user_id')
         # return jsonify({"error": "Missing required parameter: user_id"}), 400  # TODO: Have return error if no user_id when in prod
         
-        num_recently_rated = int(request.args.get('num_recently_rated', 8))  # Default to 8 if not provided
-        num_recs_to_give = int(request.args.get('num_recs_to_give', 8))  # Default to 8 if not provided
+        # num_recently_rated = int(request.args.get('num_recently_rated', 8))  # Default to 8 if not provided
+        # num_recs_to_give = int(request.args.get('num_recs_to_give', 8))  # Default to 8 if not provided
         
         by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
 
         # Call the model function
-        products_json = call_model_1(product_id=user_id, num_recently_rated=num_recently_rated, num_recs_to_give=num_recs_to_give, by_title=by_title)
-        print(f"API Returning: {products_json}")
+        products_json = call_model_1(user_id=user_id, num_recently_rated=8, num_recs_to_give=8, by_title=by_title)
+        # print(f"API Returning: {products_json}")
         # Return a success response
-        return jsonify({"recommended_products" : products_json}), 200
+        return jsonify(products_json), 200
     except Exception as e:
         # Log & return the error
         print(f"Error in /api/most_similar_products: {e}")

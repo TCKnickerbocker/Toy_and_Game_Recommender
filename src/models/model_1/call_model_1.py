@@ -39,6 +39,7 @@ def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False):
     product_ids_to_rec = model_1_funcs.recommend_products(most_similar_products, num_recs_to_give)
     print(f"Recommending product_ids: {product_ids_to_rec}. Returning call_model_1.")
     return helper_functions.get_products_by_product_ids(conn, product_ids_to_rec)
+    
 
 
 if __name__ == "__main__":

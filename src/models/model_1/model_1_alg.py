@@ -14,3 +14,4 @@ def recommend_products(most_similar_products, num_recs_to_give):
     print(num_recs_to_give)
     print(len(recommendations))
     return recommendations
+

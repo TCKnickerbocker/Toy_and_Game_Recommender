@@ -1,3 +1,4 @@
+import requests
 from flask import Flask, request, jsonify
 import snowflake.connector
 import model_1_helper_functions

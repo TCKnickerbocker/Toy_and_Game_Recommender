@@ -103,7 +103,7 @@ def check_user_rating_threshold(user_id):
         conn.close()
     
     return
-
+    
 
 
 # @app.route("/recommend", methods=["GET"])

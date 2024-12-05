@@ -20,6 +20,37 @@ export interface RatingData {
   favorite: boolean;
 }
 
+function extractEmojiSentence(summary: string) {
+  console.log(summary);
+  const EMOJI_PATTERN =
+    /([\u{1F300}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+)/gu;
+
+  const segments = summary.split(EMOJI_PATTERN);
+  const result = [];
+  let curr_string = "";
+  // Handles gendered emojis that are edge cases for our regex
+  const genderSymbols = ["♂", "♀", "⚧"];
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i].trim();
+    if (EMOJI_PATTERN.test(segment)) {
+      // If current segment is an emoji, append it with the next text segment
+      curr_string = curr_string + segment;
+    } else if (genderSymbols.includes(segment)) {
+      continue;
+    } else {
+      // Add non-emoji text segments directly
+      curr_string = curr_string + segment;
+      result.push(curr_string);
+      curr_string = "";
+    }
+  }
+
+  console.log(result);
+
+  return result;
+}
+
 // ? FUTURE: Use Stepper component
 export default function RecommendationsPage() {
   const { user } = useAuth0();
@@ -79,7 +110,7 @@ export default function RecommendationsPage() {
           : responseData[i][0];
         const itemDescription = responseData[i]["summary"]
           ? responseData[i]["summary"]
-          : responseData[i][6];
+          : responseData[i][11];
         const itemId = responseData[i]["productid"]
           ? responseData[i]["productid"]
           : responseData[i][3];
@@ -87,16 +118,12 @@ export default function RecommendationsPage() {
           ? responseData[i]["image"]
           : responseData[i][8];
 
-        console.log(responseData[i]["productid"]);
+        console.log(responseData[i]);
         setItems((prevItems) => [
           ...prevItems,
           {
             productName: itemName,
-            description: itemDescription
-              .trim()
-              .slice(1, -1)
-              .split('",')
-              .map((line: string) => line.trim().replace(/^"/, "")),
+            description: extractEmojiSentence(itemDescription),
             id: itemId,
             imgUrl: imgUrl,
           },

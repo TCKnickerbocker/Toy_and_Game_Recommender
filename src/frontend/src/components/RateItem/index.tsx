@@ -187,7 +187,9 @@ export default function RateItem({
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <CardContent>
             {description.map((text) => {
-              return <Typography sx={{ marginBottom: 2 }}>- {text}</Typography>;
+              if (text != "") {
+                return <Typography sx={{ marginBottom: 2 }}>{text}</Typography>;
+              }
             })}
           </CardContent>
         </Collapse>

@@ -1,9 +1,13 @@
 import { StrictMode } from "react";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import {
+  BrowserRouter,
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
 import "./css/index.css";
 import App from "./App";
 import Layout from "./layout";
-import { RecommendationsPage, LandingPage } from "./pages";
+import { RecommendationsPage, LandingPage, GenerateProductPage } from "./pages";
 import { createRoot } from "react-dom/client";
 
 const router = createBrowserRouter([
@@ -20,11 +24,13 @@ const router = createBrowserRouter([
         path: "/recommendations",
         element: <RecommendationsPage />,
       },
+      {
+        path: "/generate_fake_product",
+        element: <GenerateProductPage />,
+      },
     ],
   },
 ]);
-
-console.log(router);
 
 const root = createRoot(document.getElementById("root")!);
 

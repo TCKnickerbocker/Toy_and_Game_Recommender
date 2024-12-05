@@ -99,10 +99,17 @@ export default function RateItem({
       component="span"
       sx={{ display: "inline-block", mx: "2px", transform: "scale(0.8)" }}
     >
-      <Card variant="outlined" sx={{ width: "400px" }}>
+      <Card
+        variant="outlined"
+        sx={{
+          width: "370px",
+          boxShadow: 1,
+          borderRadius: "8px",
+        }}
+      >
         {loading ? (
           <Skeleton
-            sx={{ height: "400px", width: "400px", marginBottom: "10px" }}
+            sx={{ height: "370px", width: "370px", marginBottom: "10px" }}
             animation="wave"
             variant="rectangular"
           />
@@ -113,10 +120,10 @@ export default function RateItem({
             image={imgUrl}
             alt="Product Image"
             sx={{
-              aspectRatio: "1/1",
-              width: "400px",
-              height: "400px",
+              width: "370px",
+              height: "370px",
               marginBottom: "10px",
+              objectFit: "contain",
             }}
           />
         )}
@@ -187,7 +194,9 @@ export default function RateItem({
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <CardContent>
             {description.map((text) => {
-              return <Typography sx={{ marginBottom: 2 }}>- {text}</Typography>;
+              if (text != "") {
+                return <Typography sx={{ marginBottom: 2 }}>{text}</Typography>;
+              }
             })}
           </CardContent>
         </Collapse>

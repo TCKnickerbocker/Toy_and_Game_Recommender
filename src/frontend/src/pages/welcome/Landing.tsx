@@ -6,8 +6,12 @@ export default function LandingPage() {
   const navigate = useNavigate();
   return (
     <Box>
-      <Typography>Welcome! Please sign into your account.</Typography>
-      <LoginButton />
+      <Box display="flex" justifyContent="center">
+        <Typography>Welcome! Please sign into your account.</Typography>
+      </Box>
+      <Box display="flex" justifyContent="center">
+        <LoginButton />
+      </Box>
     </Box>
   );
 }

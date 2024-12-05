@@ -78,6 +78,34 @@ def check_rating_exists(user_id, product_id):
     
     return False
 
+# Will delete all the user's ratings if they have more than 100
+def check_user_rating_threshold(user_id):
+    try:
+        conn = setup_connection()
+
+        cur = conn.cursor()
+
+        cur.execute("""
+            DELETE FROM user_ratings
+            WHERE user_id IN (
+                SELECT user_id
+                FROM user_ratings
+                GROUP BY user_id
+                HAVING COUNT(*) > 100
+            )
+            AND user_id = %s;
+            """, (user_id))
+        conn.commit()
+    except snowflake.connector.Error as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    
+    return
+    
+
+
 # @app.route("/recommend", methods=["GET"])
 # def recommend():
 #     user_id = int(request.args.get("user_id"))
@@ -100,23 +128,18 @@ def create_user():
     user_id = data['user_id']
     email = data['email']
 
-    
-
     try:
         conn = setup_connection()
 
         cur = conn.cursor()
-
-        cur.execute("CREATE OR REPLACE TABLE user_ratings (REVIEW_ID INT IDENTITY PRIMARY KEY, USER_ID VARCHAR(255), PARENT_ASIN VARCHAR(50), RATING FLOAT, FAVORITE BOOLEAN, FOREIGN KEY (user_id) REFERENCES user_accounts(user_id) ON DELETE CASCADE);")
 
         if check_user_exists(user_id) == True:
             print("ISSUE: This user already exists")
             conn.commit()
             conn.close()
             return {"message": "User already exists"}, 400
-        else:
-            cur.execute("INSERT INTO user_accounts (user_id, email) VALUES (%s, %s)", (user_id, email))
-        
+
+        cur.execute("INSERT INTO user_accounts (user_id, email) VALUES (%s, %s)", (user_id, email))
 
         conn.commit()
     except snowflake.connector.Error as e:
@@ -144,6 +167,8 @@ def insert_user_reviews():
         conn = setup_connection()
 
         cur = conn.cursor()
+
+        check_user_rating_threshold(user_id)
 
         cur.execute("INSERT INTO user_ratings (user_id, parent_asin, rating, favorite) VALUES (%s, %s, %s, %s)", (user_id, product_id, rating, favorite))
 
@@ -219,7 +244,7 @@ def most_similar_products():
 
         if response.status_code == 200:
             # Return the success response from the second container's API
-            return jsonify({"recommended_products": response.json()}), 200
+            return jsonify(response.json()), 200
         else:
             return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
         

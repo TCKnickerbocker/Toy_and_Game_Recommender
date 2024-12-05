@@ -20,8 +20,7 @@ export interface RatingData {
   favorite: boolean;
 }
 
-function extractEmojiSentence(summary: string) {
-  console.log(summary);
+export function extractEmojiSentence(summary: string) {
   const EMOJI_PATTERN =
     /([\u{1F300}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+)/gu;
 
@@ -46,8 +45,6 @@ function extractEmojiSentence(summary: string) {
     }
   }
 
-  console.log(result);
-
   return result;
 }
 
@@ -58,6 +55,9 @@ export default function RecommendationsPage() {
   const [isCardLoading, setIsCardLoading] = useState(true);
   const [items, setItems] = useState<RateItemProps[]>([]);
   const [refreshesLeft, setRefreshesLeft] = useState(3);
+
+  // TODO: STILL RENDERS AS NOTHING ON RELOAD
+  const [userId, setUserId] = useState("");
 
   // Calls the Flask API which will insert the user into the DB
   const createUser = async (data: any) => {
@@ -72,7 +72,7 @@ export default function RecommendationsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        throw new Error("Network response was not ok for createUser()");
       }
 
       const responseData = await response.json();
@@ -103,8 +103,11 @@ export default function RecommendationsPage() {
       }
 
       const responseData = await response.json();
-      console.log(typeof responseData);
+      console.log(responseData);
+
       for (const i in responseData) {
+        console.log(responseData[i]);
+
         const itemName = responseData[i]["title"]
           ? responseData[i]["title"]
           : responseData[i][0];
@@ -118,7 +121,6 @@ export default function RecommendationsPage() {
           ? responseData[i]["image"]
           : responseData[i][8];
 
-        console.log(responseData[i]);
         setItems((prevItems) => [
           ...prevItems,
           {
@@ -139,11 +141,15 @@ export default function RecommendationsPage() {
 
   // Runs once when page renders
   useEffect(() => {
-    const userData = {
-      user_id: user?.user_id,
-      email: user?.nickname,
-    };
-    if (userData.user_id && userData.email) createUser(userData);
+    console.log(`USER ID: ${userId}`);
+    if (user && user.user_id && user.nickname) {
+      setUserId(user.user_id);
+      const userData = {
+        user_id: userId,
+        email: user?.nickname,
+      };
+      createUser(userData);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -160,8 +166,8 @@ export default function RecommendationsPage() {
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  console.log("RATINGS: ", ratings);
-  console.log("FAVORITES: ", favorites);
+  // console.log("RATINGS: ", ratings);
+  // console.log("FAVORITES: ", favorites);
 
   // Sets the rating value for a RateItem component when it changes
   const handleRatingChange = (id: string, rating: number) => {
@@ -178,7 +184,7 @@ export default function RecommendationsPage() {
     let allData: RatingData[] = [];
     for (const item of items) {
       let itemData: RatingData = {
-        user_id: user!.user_id,
+        user_id: userId,
         product_id: item.id,
         rating: ratings[item.id]!,
         favorite: favorites[item.id]!,
@@ -212,8 +218,10 @@ export default function RecommendationsPage() {
   };
 
   const handleRefresh = () => {
-    getItems("similar", user?.user_id);
+    setIsCardLoading(true);
+    getItems("similar", userId);
     setRefreshesLeft(refreshesLeft - 1);
+    setIsCardLoading(false);
   };
 
   // ? FUTURE: Get the cards to have the skeleton and populate with data, one by one instead of all at once
@@ -232,7 +240,16 @@ export default function RecommendationsPage() {
       <Box display="flex" justifyContent="center">
         <Typography variant="h6">Refreshes Left: {refreshesLeft}</Typography>
       </Box>
-      <Grid container spacing={2} columns={12}>
+      <Box display="flex" justifyContent="center">
+        <Button
+          variant="contained"
+          sx={{ marginTop: "20px", marginBottom: "20px" }}
+          href={`/generate_fake_product?user_id=${userId}`}
+        >
+          Generate Fake Products
+        </Button>
+      </Box>
+      <Grid container columns={12}>
         {isCardLoading
           ? Array.from({ length: 8 }).map((_, index) => (
               <Grid size={3} display="flex" justifyContent="center">

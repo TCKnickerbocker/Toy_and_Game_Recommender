@@ -68,7 +68,7 @@ def most_similar_products():
         products_json = call_model_1(user_id=user_id, num_recently_rated=num_recently_rated, num_recs_to_give=num_recs_to_give, by_title=by_title)
         
         # Return a success response
-        return jsonify({"recommended_products": products_json}), 200
+        return jsonify(products_json), 200
 
     except Exception as e:
         # Log & return the error

@@ -5,8 +5,6 @@ import requests
 import os
 from urllib.parse import urlparse
 import sys
-sys.path.append("/configs")
-from configs import model_config
 
 
 def get_n_most_similar_product_ids(conn, product_id, similarity_tablename='product_description_similarity', n=8, user_id=None):

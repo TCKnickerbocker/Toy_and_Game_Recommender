@@ -1,5 +1,9 @@
 import { StrictMode } from "react";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import {
+  BrowserRouter,
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
 import "./css/index.css";
 import App from "./App";
 import Layout from "./layout";
@@ -21,7 +25,7 @@ const router = createBrowserRouter([
         element: <RecommendationsPage />,
       },
       {
-        path: "/generate_product",
+        path: "/generate_fake_product",
         element: <GenerateProductPage />,
       },
     ],

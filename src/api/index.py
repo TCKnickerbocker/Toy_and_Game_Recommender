@@ -244,7 +244,7 @@ def most_similar_products():
 
         if response.status_code == 200:
             # Return the success response from the second container's API
-            return jsonify({"recommended_products": response.json()}), 200
+            return jsonify(response.json()), 200
         else:
             return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
         

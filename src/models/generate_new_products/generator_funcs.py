@@ -4,17 +4,23 @@ from openai import OpenAI
 import concurrent.futures
 from typing import List, Dict
 import uuid
+import os
 
+# Private variables
 import sys
 sys.path.append("../configs")
 from model_config import LOGGER, OPENAI_API_KEY
 
+# s3
+import boto3
+import requests
+from urllib.parse import urlparse
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 class CreativeProductGenerator:
-    def __init__(self, connection_params, max_workers=5):
+    def __init__(self, connection_params, domain_expander, max_workers=5):
         """
         Initialize the creative product generator with Snowflake connection parameters.
 
@@ -22,6 +28,7 @@ class CreativeProductGenerator:
         :param max_workers: Maximum number of concurrent worker threads
         """
         self.connection_params = connection_params
+        self.domain_expander = domain_expander
         self.max_workers = max_workers
 
     def fetch_inspiration_products(self, conn, history_limit=8, user_id=None) -> List[Dict]:
@@ -84,6 +91,7 @@ class CreativeProductGenerator:
                 """
                 for p in inspiration_products
             ])
+            domains_to_consider = self.domain_expander.get_random_domains()
 
             prompt = f"""
             Make a new game or toy that will appeal to this user given their past ratings:
@@ -105,7 +113,7 @@ class CreativeProductGenerator:
             @@@ 💸 Some text
             @@@ Specs of Monopoly
             Please be as creative as possible while reasonably inferring that the product will appeal to some dimension of this person's preferences.
-            Some domains you may want to consider are: board games, toys, video games, games for families. Try to avoid the topic of outer space.
+            Some domains you may want to consider are: {domains_to_consider}. Try to avoid the topic of outer space.
             """
 
             response = client.chat.completions.create(
@@ -119,7 +127,6 @@ class CreativeProductGenerator:
             )
             
             new_product_concept = response.choices[0].message.content.strip()
-            print(new_product_concept)
             return {"concept_text": new_product_concept}
 
         except Exception as e:
@@ -222,11 +229,11 @@ class CreativeProductGenerator:
                 cur.execute(final_insert_query)
                 conn.commit()
 
-                logging.info(f"Product {title} with id {product_id} store successfully")
+                LOGGER.info(f"Product {title} with id {product_id} store successfully")
                 return product_id
 
         except Exception as e:
-            logging.error(f"Error storing new products: {e}")
+            LOGGER.error(f"Error storing new products: {e}")
             return None
 
 
@@ -282,7 +289,8 @@ class CreativeProductGenerator:
                         })
                         
                         generated_products.append(parsed_product)
-
+                        # store_product_image_in_s3(parsed_product["productId"], parsed_product["imageUrl"], "amazontoyreviews", conn)
+                        
                     except Exception as e:
                         LOGGER.error(f"Error processing product generation: {e}")
 
@@ -314,3 +322,84 @@ class CreativeProductGenerator:
         
         return product
 
+# TODO fix
+def store_product_image_in_s3(product_id, original_image_url, s3name, snowflake_conn):
+    """
+    Download an image from a URL and store it in an S3 bucket.
+
+    :param full_product_data: Dictionary containing product and image details
+    :param s3name: Name or identifier for the S3 bucket
+    :return: S3 URL of the stored image or None if storage fails
+    """
+    try:
+        # Get the image URL from the product data
+        temp_image_url = original_image_url
+        if not temp_image_url:
+            LOGGER.warning("No image URL found in store_image_in_s3")
+            return None
+
+        # Download the image
+        response = requests.get(temp_image_url)
+        if response.status_code != 200:
+            LOGGER.error(f"Failed to download image from {temp_image_url}")
+            return None
+
+        # Prepare file details
+        file_extension = os.path.splitext(urlparse(temp_image_url).path)[1] or '.png'
+        local_filename = f"{product_id}{file_extension}"
+
+        # Save temporary local file
+        with open(local_filename, 'wb') as f:
+            f.write(response.content)
+
+        # Initialize S3 client, determine path
+        s3_client = boto3.client('s3')
+        s3_key = f"product_images/{local_filename}"
+        
+        # Generate S3 URL
+        s3_url = f"https://{s3name}.s3.amazonaws.com/{s3_key}"
+        
+        insert_new_image_into_table(snowflake_conn, product_id, s3_url, table_name="ai_generated_products", image_column_name="imageurl")
+        # Upload to S3
+        s3_client.upload_file(
+            local_filename, 
+            s3name, 
+            s3_key, 
+            ExtraArgs={
+                'ContentType': response.headers.get('content-type', 'image/png')
+            }
+        )
+
+        # Clean up local file
+        os.remove(local_filename)
+
+        LOGGER.info(f"Image stored in S3 at {s3_url}")
+        return s3_url
+
+    except Exception as e:
+        LOGGER.error(f"Error storing image in S3: {e}")
+        return None
+    
+
+def insert_new_image_into_table(conn, product_id, image_url, table_name="ai_generated_products", image_column_name="imageurl"):
+    """
+    Insert a new image URL into the specified table for a given product ID.
+
+    :param conn: Connection object for the database.
+    :param product_id: The ID of the product to associate with the image.
+    :param image_url: The URL of the image to be inserted.
+    :param table_name: The name of the target table (default: 'ai_generated_products').
+    :param image_column_name: The name of the column to insert the image URL into (default: 'image').
+    """
+    query = f"""
+        UPDATE {table_name}
+        SET {image_column_name} = %s
+        WHERE productid = %s
+    """
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, (image_url, str(product_id)))
+            conn.commit()
+            print(f"Image URL successfully updated for product_id: {product_id}")
+    except Exception as e:
+        print(f"Error inserting image into table: {e}")

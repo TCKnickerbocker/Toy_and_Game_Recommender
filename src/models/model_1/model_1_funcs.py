@@ -11,4 +11,6 @@ def recommend_products(most_similar_products, num_recs_to_give):
     
     # Ensure unique recommendations and limit to num_recs_to_give
     recommendations = list(dict.fromkeys(recommendations))[:num_recs_to_give]
+    print(num_recs_to_give)
+    print(len(recommendations))
     return recommendations

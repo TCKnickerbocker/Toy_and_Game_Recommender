@@ -180,14 +180,14 @@ def initial_products():
     
     return {"message": "Something went wrong with fetching initial products"}, 400
 
-MODEL_1_URL = "http://localhost:5003/most_similar_products"  # Replace as needed
+MODEL_1_URL = "http://localhost:5003/most_similar_products"  # Adjust as needed
 @app.route("/api/most_similar_products", methods=["GET"])
 def most_similar_products():
     """
     API endpoint to retrieve the most similar products based on a given product ID.
     Accepts query parameters for the product ID, number of results, and whether to
     use title-based similarity (else defaults to description-based similarity).
-
+    
     Query Parameters:
         - product_id: str (required)
         - n: int (optional, default=8)
@@ -198,19 +198,31 @@ def most_similar_products():
     """
     try:
         # Extract query parameters
-        user_id = request.args.get('user_id', "dummyUser")
-        # return jsonify({"error": "Missing required parameter: user_id"}), 400  # TODO: Have return error if no user_id when in prod
+        user_id = request.args.get('user_id', None)  # User ID required, but no default
+        if not user_id:
+            return jsonify({"error": "Missing required parameter: user_id"}), 400
         
         num_recently_rated = int(request.args.get('num_recently_rated', 8))  # Default to 8 if not provided
         num_recs_to_give = int(request.args.get('num_recs_to_give', 8))  # Default to 8 if not provided
-        
         by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
 
-        # Call the model function
-        products_json = call_model_1(product_id=user_id, num_recently_rated=num_recently_rated, num_recs_to_give=num_recs_to_give, by_title=by_title)
-        print(f"API Returning: {products_json}")
-        # Return a success response 
-        return jsonify({"recommended_products" : products_json}), 200
+        # Prepare query parameters for the second container's API
+        params = {
+            'user_id': user_id,
+            'num_recently_rated': num_recently_rated,
+            'num_recs_to_give': num_recs_to_give,
+            'by_title': by_title
+        }
+
+        # Call the second container's API
+        response = requests.get(MODEL_1_URL, params=params)
+
+        if response.status_code == 200:
+            # Return the success response from the second container's API
+            return jsonify({"recommended_products": response.json()}), 200
+        else:
+            return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
+        
     except Exception as e:
         # Log & return the error
         print(f"Error in /api/most_similar_products: {e}")

@@ -7,9 +7,7 @@ import uuid
 import os
 
 # Private variables
-import sys
-sys.path.append("../configs")
-from configs import model_config
+from generator_configs import LOGGER, OPENAI_API_KEY
 
 # s3
 import boto3
@@ -17,7 +15,7 @@ import requests
 from urllib.parse import urlparse
 
 # Initialize OpenAI client
-client = OpenAI(api_key=model_config.OPENAI_API_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 class CreativeProductGenerator:
     def __init__(self, connection_params, domain_expander, max_workers=5):
@@ -130,7 +128,7 @@ class CreativeProductGenerator:
             return {"concept_text": new_product_concept}
 
         except Exception as e:
-            model_config.LOGGER.error(f"Error generating product concept: {e}")
+            LOGGER.error(f"Error generating product concept: {e}")
             return {"concept_text": ""}
 
     def generate_product_image(self, product_concept: Dict, model="dall-e-3", quality="standard", size="1024x1024") -> Dict:
@@ -172,7 +170,7 @@ class CreativeProductGenerator:
             }
 
         except Exception as e:
-            model_config.LOGGER.error(f"Error generating product image: {e}")
+            LOGGER.error(f"Error generating product image: {e}")
             return {"image_url": "", "revised_prompt": ""}
 
     def store_new_product(self, conn, product_data: List[Dict], source_table='ai_generated_products'):
@@ -237,7 +235,7 @@ class CreativeProductGenerator:
             return None
 
 
-    def generate_creative_products(self, target_table='generated_products', num_products=4, user_id=None) -> List[Dict]:
+    def generate_creative_products(self, target_table='generated_products', num_products=1, user_id=None) -> List[Dict]:
         """
         Main processing function to generate creative new products.
 
@@ -250,12 +248,13 @@ class CreativeProductGenerator:
         with snowflake.connector.connect(**self.connection_params) as conn:
             # Fetch inspiration products
             inspiration_products = self.fetch_inspiration_products(conn, history_limit=10, user_id=user_id)
-            model_config.LOGGER.info(f"Using {len(inspiration_products)} products for inspiration")
+            LOGGER.info(f"Using {len(inspiration_products)} products for inspiration")
 
             # Process products concurrently
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 # Submit tasks for product generation
                 futures = []
+                print("NUM PRODUCTS: ", num_products)
                 for _ in range(num_products):
                     # Generate product concept
                     concept_future = executor.submit(
@@ -292,9 +291,9 @@ class CreativeProductGenerator:
                         # store_product_image_in_s3(parsed_product["productId"], parsed_product["imageUrl"], "amazontoyreviews", conn)
                         
                     except Exception as e:
-                        model_config.LOGGER.error(f"Error processing product generation: {e}")
+                        LOGGER.error(f"Error processing product generation: {e}")
 
-            model_config.LOGGER.info(f"Product generation complete")
+            LOGGER.info(f"Product generation complete")
             
             return generated_products
 
@@ -322,7 +321,7 @@ class CreativeProductGenerator:
         
         return product
 
-# TODO fix
+# TODO: call async? takes forever to complete.
 def store_product_image_in_s3(product_id, original_image_url, s3name, snowflake_conn):
     """
     Download an image from a URL and store it in an S3 bucket.

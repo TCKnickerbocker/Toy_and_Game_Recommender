@@ -1,0 +1,7 @@
+snowflake-connector-python
+openai
+boto3
+requests
+python-dotenv
+Flask
+

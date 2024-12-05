@@ -1,3 +1,4 @@
+### TODO: make operational
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.utils.dates import days_ago

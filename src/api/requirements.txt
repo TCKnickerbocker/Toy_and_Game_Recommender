@@ -1,0 +1,6 @@
+Flask
+python-dotenv
+snowflake-connector-python
+requests
+prometheus-flask-exporter
+logger

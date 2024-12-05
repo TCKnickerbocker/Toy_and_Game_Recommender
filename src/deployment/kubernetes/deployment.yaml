@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: model-1-container
+          image: thecscichronicles/model-1-api:latest
+          ports:
+            - containerPort: 5003
+        - name: generate-products-container
+          image: thecscichronicles/generate-products-api:latest
+          ports:
+            - containerPort: 5004
+

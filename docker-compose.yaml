@@ -1,31 +1,78 @@
-version: "3.8"
+version: '2.31.0'
+
 services:
-  spark:
-    image: bitnami/spark:latest
-    container_name: spark-master
-    environment:
-      - SPARK_MODE=master
-    ports:
-      - "7077:7077"
-      - "8080:8080"
-    volumes:
-      - ./src:/app/src
-  api:
+  frontend:
     build:
       context: .
-      dockerfile: src/deployment/Dockerfile.api
-    ports:
-      - "5000:5000"
-    environment:
-      - PYTHONUNBUFFERED=1
-      - FLASK_ENV=development
-    volumes:
-      - ./src:/app/src
-  grafana:
-    image: grafana/grafana:latest
+      dockerfile: docker/frontend/Dockerfile
     ports:
       - "3000:3000"
+    networks:
+      - app-network
+    depends_on:
+      - api
+
+  api:
+    build: 
+      context: .
+      dockerfile: docker/api/Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    depends_on:
+      - model_1
+      - generate_new_products
+
+  model_1:
+    build: 
+      context: .
+      dockerfile: docker/model_1/Dockerfile
+    ports:
+      - "5003:5003"
+      - "9100:9100" 
+    environment:
+      - METRICS_PORT=9100  
+
+  generate_new_products:
+    build: 
+      context: .
+      dockerfile: docker/generate_new_products/Dockerfile
+    ports:
+      - "5004:5004"
+      - "9101:9101" 
+    environment:
+      - METRICS_PORT=9101
+
+  prometheus:
+    build:
+      context: .
+      dockerfile: docker/monitoring/prometheus/Dockerfile
+    ports:
+      - "9090:9090"
+      - "9091:9091"
     volumes:
-      - grafana-storage:/var/lib/grafana
-volumes:
-  grafana-storage:
+      - ./docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--web.listen-address=:9090'  # Ensure Prometheus listens on port 9090 for scraping
+      - '--web.external-url=http://localhost:9090'
+      - '--web.enable-lifecycle'
+  # grafana:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/monitoring/grafana/Dockerfile
+  #   ports:
+  #     - "3001:3000"
+  #   networks:
+  #     - monitoring-network
+  #   depends_on:
+  #     - prometheus
+  #   volumes:
+  #     - ./docker/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+  #     - ./docker/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+
+networks:
+  app-network:
+    driver: bridge
+  monitoring-network:
+    driver: bridge

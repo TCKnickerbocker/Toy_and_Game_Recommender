@@ -1,17 +1,11 @@
 from flask import Flask, request, jsonify, redirect, render_template, session, url_for
-# from pyspark.sql import SparkSession
-# from pyspark.ml.recommendation import ALSModel
 from dotenv import load_dotenv, find_dotenv
 import snowflake.connector
 import os
 from os import environ as env
 import logger
-import sys
 import requests
-sys.path.append("../models/generate_new_products")
-sys.path.append("../models/model_1")
-from call_generate_model import call_generate_products
-from call_model_1 import call_model_1
+import sys
 
 
 app = Flask(__name__)

@@ -5,24 +5,25 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copy the current directory contents into the container
-COPY src/models/generate_new_products/requirements.txt ./
+COPY src/models/model_3/requirements.txt ./
 
 # Install dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 # RUN pip install -r requirements.txt
 
-COPY /src/models/generate_new_products/ .
+COPY /src/models/model_3/ .
 
 # Set environment variables from .env file
 ENV PYTHONUNBUFFERED=1
 
 
 # Expose the port Flask will run on
-EXPOSE 5007
+EXPOSE 5005
 
 # Run the Flask app
-CMD ["python", "call_generate_model.py"]
+CMD ["python", "call_model_3.py"]
 
-# docker build -t generate_new_products .
-# docker run -p 5007:5007 generate_new_products
+
+# docker build -t model_3 .
+# docker run -p 5005:5005 model_3

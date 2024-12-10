@@ -1,6 +1,6 @@
 import concurrent.futures
 
-def get_n_most_similar_product_ids_model_1(conn, product_id, similarity_tablename='product_description_similarity', n=8, user_id=None):
+def get_n_most_similar_product_ids_model_2(conn, product_id, similarity_tablename='product_description_similarity', oyt_tablename='oyt_scores_of_most_popular_products', n=8, user_id=None):
     """
     Fetch the top n most similar products to a given product_id from both product1_id and product2_id perspectives,
     excluding the current product_id from the results.
@@ -19,54 +19,103 @@ def get_n_most_similar_product_ids_model_1(conn, product_id, similarity_tablenam
     if not isinstance(n, int) or n <= 0:
         raise ValueError("n must be a positive integer")
     
-    # Build the query string with the validated n value
-    if user_id:
+    # Validate inputs to prevent SQL injection
+    if not isinstance(product_id, (int, str)):
+        raise ValueError("product_id must be an integer or string")
+    
+    # Convert product_id and user_id to strings to safely insert into query
+    product_id_str = str(product_id)
+    user_id_str = str(user_id) if user_id is not None else None
+    
+    # Sanitize table names (assuming they are predefined and trusted)
+    similarity_tablename = similarity_tablename.replace(';', '').replace("'", "''")
+    oyt_tablename = oyt_tablename.replace(';', '').replace("'", "''")
+    
+    # Build the query string with parameterized values
+    if user_id is not None:
         query = f"""
-        (
-            SELECT product2_id AS similar_product_id
+        WITH similar_products AS (
+            SELECT 
+                product2_id AS similar_product_id,
+                similarity_score
             FROM {similarity_tablename}
             WHERE product1_id = %s
-            AND product2_id NOT IN (SELECT parent_asin FROM user_ratings WHERE user_id = '{user_id}')
-            ORDER BY similarity_score DESC
-            LIMIT %s
-        )
-        UNION
-        (
-            SELECT product1_id AS similar_product_id
+            AND product2_id NOT IN (
+                SELECT parent_asin 
+                FROM user_ratings 
+                WHERE user_id = %s
+            )
+            UNION ALL
+            SELECT 
+                product1_id AS similar_product_id,
+                similarity_score
             FROM {similarity_tablename}
             WHERE product2_id = %s
-            AND product1_id NOT IN (SELECT parent_asin FROM user_ratings WHERE user_id = '{user_id}')
-            ORDER BY similarity_score DESC
-            LIMIT %s
+            AND product1_id NOT IN (
+                SELECT parent_asin 
+                FROM user_ratings 
+                WHERE user_id = %s
+            )
         )
-        ORDER BY similar_product_id
+        SELECT 
+            sp.similar_product_id,
+            sp.similarity_score,
+            oyt.oyt_score,
+            (sp.similarity_score + COALESCE(oyt.oyt_score, 0)) AS combined_score
+        FROM 
+            similar_products sp
+        LEFT JOIN 
+            {oyt_tablename} oyt
+        ON 
+            sp.similar_product_id = oyt.PRODUCT_ID
+        ORDER BY 
+            combined_score DESC
         LIMIT %s;
         """
+        query_params = (product_id_str, user_id_str, product_id_str, user_id_str, n)
     else:
         query = f"""
-        (
-            SELECT product2_id AS similar_product_id
+        WITH similar_products AS (
+            SELECT 
+                product2_id AS similar_product_id,
+                similarity_score
             FROM {similarity_tablename}
             WHERE product1_id = %s
-            ORDER BY similarity_score DESC
-            LIMIT %s
-        )
-        UNION
-        (
-            SELECT product1_id AS similar_product_id
+            AND product2_id NOT IN (
+                SELECT parent_asin 
+                FROM user_ratings 
+            )
+            UNION ALL
+            SELECT 
+                product1_id AS similar_product_id,
+                similarity_score
             FROM {similarity_tablename}
             WHERE product2_id = %s
-            ORDER BY similarity_score DESC
-            LIMIT %s
+            AND product1_id NOT IN (
+                SELECT parent_asin 
+                FROM user_ratings 
+            )
         )
-        ORDER BY similar_product_id
+        SELECT 
+            sp.similar_product_id,
+            sp.similarity_score,
+            oyt.oyt_score,
+            (sp.similarity_score + COALESCE(oyt.oyt_score, 0)) AS combined_score
+        FROM 
+            similar_products sp
+        LEFT JOIN 
+            {oyt_tablename} oyt
+        ON 
+            sp.similar_product_id = oyt.PRODUCT_ID
+        ORDER BY 
+            combined_score DESC
         LIMIT %s;
         """
+        query_params = (product_id_str, product_id_str, n)
 
-    
     # Execute the query with parameterized values
     with conn.cursor() as cur:
-        cur.execute(query, (product_id, n, product_id, n, n))
+        cur.execute(query, query_params)
         top_similar_products = cur.fetchall()
         
     # Extract the product IDs from the result

@@ -72,13 +72,13 @@
 
 
 # # Expose the port Flask will run on
-# EXPOSE 5004
+# EXPOSE 5007
 
 # # Run the Flask app
 # CMD ["python", "call_generate_model.py"]
 
 # docker build -t generate_new_products .
-# docker run -p 5004:5004 generate_new_products
+# docker run -p 5007:5007 generate_new_products
 
 
 ###

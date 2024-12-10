@@ -17,8 +17,20 @@ spec:
           image: thecscichronicles/model-1-api:latest
           ports:
             - containerPort: 5003
+        - name: model-2-container
+          image: thecscichronicles/model-2-api:latest
+          ports:
+            - containerPort: 5004
+        - name: model-3-container
+          image: thecscichronicles/model-3-api:latest
+          ports:
+            - containerPort: 5005
+        - name: model-4-container
+          image: thecscichronicles/model-4-api:latest
+          ports:
+            - containerPort: 5006
         - name: generate-products-container
           image: thecscichronicles/generate-products-api:latest
           ports:
-            - containerPort: 5004
+            - containerPort: 5007
 

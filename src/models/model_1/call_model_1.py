@@ -195,9 +195,9 @@ def run_metrics_server(port=9100):
 # Start metrics server & run app
 if __name__ == "__main__":
     # Use environment variable for metrics port, default to 9100
-    metrics_port = int(os.getenv('METRICS_PORT', 9100))
+    # metrics_port = int(os.getenv('METRICS_PORT', 9100))
     
-    metrics_thread = threading.Thread(target=run_metrics_server, kwargs={'port': metrics_port})
-    metrics_thread.start()
-    # call_model_1("dummyUser", 3, 4)
-    app.run(debug=True, host="0.0.0.0", port=5003)
+    # metrics_thread = threading.Thread(target=run_metrics_server, kwargs={'port': metrics_port})
+    # metrics_thread.start()
+    call_model_1("dummyUser", 8, 8)
+    # app.run(debug=True, host="0.0.0.0", port=5003)

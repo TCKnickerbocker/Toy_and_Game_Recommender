@@ -73,10 +73,14 @@ def process_batch(conn, batch_offset, batch_size):
     try:
         cur = conn.cursor()
         
-        # Fetch batch of reviews
+        # Fetch batch of reviews that have not been processed before
         batch_query = f"""
         SELECT PRODUCTID, USER_ID, TITLE, REVIEW_TEXT 
         FROM reviews_of_most_popular_products
+        WHERE (PRODUCTID, USER_ID) NOT IN (
+            SELECT product_id, user_id 
+            FROM review_sentiments_most_popular_products
+        )
         ORDER BY PRODUCTID
         LIMIT {batch_size}
         OFFSET {batch_offset}
@@ -115,8 +119,15 @@ def update_sentiment_scores(conn, batch_size=500, max_workers=8):
     try:
         cur = conn.cursor()
         
-        # Get total number of reviews
-        count_query = "SELECT COUNT(*) FROM reviews_of_most_popular_products"
+        # Get total number of unprocessed reviews
+        count_query = """
+        SELECT COUNT(*) 
+        FROM reviews_of_most_popular_products
+        WHERE (PRODUCTID, USER_ID) NOT IN (
+            SELECT product_id, user_id 
+            FROM review_sentiments_most_popular_products
+        )
+        """
         cur.execute(count_query)
         total_reviews = cur.fetchone()[0]
         
@@ -136,26 +147,27 @@ def update_sentiment_scores(conn, batch_size=500, max_workers=8):
         
         # Bulk update sentiment scores
         if sentiment_updates:
-            # Create table for bulk update
+            # Create table for bulk update if not exists
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS review_sentiments_most_popular_products (
                     product_id VARCHAR(10),
                     user_id VARCHAR(50),
-                    sentiment_score FLOAT(8)
+                    sentiment FLOAT(8),
+                    PRIMARY KEY (product_id, user_id)
                 )
             """)
             
-            # Insert updates into table
+            # Insert updates into table, ignoring duplicates
             cur.executemany(
-                "INSERT INTO review_sentiments_most_popular_products (product_id, user_id, sentiment_score) VALUES (%s, %s, %s)",
+                "INSERT INTO review_sentiments_most_popular_products (product_id, user_id, sentiment) VALUES (%s, %s, %s)",
                 sentiment_updates
             )
             
             conn.commit()
-            print(f"Updated sentiment scores for {len(sentiment_updates)} reviews.")
+            print(f"Updated sentiment values for {len(sentiment_updates)} reviews.")
             return len(sentiment_updates)
         
-        print("No reviews found to update.")
+        print("No unprocessed reviews found.")
         return 0
     
     except snowflake.connector.Error as e:

@@ -2,6 +2,7 @@ import re
 import snowflake.connector
 from openai import OpenAI
 import concurrent.futures
+
 from typing import List, Dict
 import uuid
 import os
@@ -237,10 +238,11 @@ class CreativeProductGenerator:
 
     def generate_creative_products(self, target_table='generated_products', num_products=1, user_id=None) -> List[Dict]:
         """
-        Main processing function to generate creative new products.
+        Main processing function to generate creative new products and store product images in S3.
 
         :param target_table: Name of the table to store new products
         :param num_products: Number of products to generate
+        :param user_id: User ID for product inspiration
         :return: List of generated product dictionaries
         """
         generated_products = []
@@ -250,51 +252,47 @@ class CreativeProductGenerator:
             inspiration_products = self.fetch_inspiration_products(conn, history_limit=10, user_id=user_id)
             LOGGER.info(f"Using {len(inspiration_products)} products for inspiration")
 
-            # Process products concurrently
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                # Submit tasks for product generation
                 futures = []
-                print("NUM PRODUCTS: ", num_products)
+                
                 for _ in range(num_products):
-                    # Generate product concept
-                    concept_future = executor.submit(
-                        self.generate_product_concept, 
-                        inspiration_products
+                    # Submit task to generate product concept
+                    futures.append(
+                        executor.submit(self.generate_product_concept, inspiration_products)
                     )
-                    futures.append(concept_future)
 
-                # Process and store generated products
                 for future in concurrent.futures.as_completed(futures):
                     try:
                         product_concept = future.result()
                         
-                        # Generate image for the concept
+                        # Generate product image
                         product_image = self.generate_product_image(product_concept)
-                        
-                        # Merge concept and image data
                         full_product_data = {**product_concept, **product_image}
-                        
-                        # Store the new product in Snowflake
+
+                        # Store new product in Snowflake
                         product_id = self.store_new_product(conn, full_product_data, target_table)
-                        
-                        # Parse the concept text into a more structured format
                         parsed_product = self._parse_product_concept(full_product_data['concept_text'])
                         
-                        # Add additional fields
                         parsed_product.update({
                             'productId': product_id,
                             'imageUrl': full_product_data.get('image_url', ''),
                             'imagePrompt': full_product_data.get('revised_prompt', '')
                         })
                         
-                        generated_products.append(parsed_product)
-                        # store_product_image_in_s3(parsed_product["productId"], parsed_product["imageUrl"], "amazontoyreviews", conn)
+                        # Store product image in S3 asynchronously
+                        executor.submit(
+                            store_product_image_in_s3, 
+                            parsed_product["productId"], 
+                            parsed_product["imageUrl"], 
+                            "amazontoyreviews", 
+                            conn
+                        )
                         
+                        generated_products.append(parsed_product)
                     except Exception as e:
                         LOGGER.error(f"Error processing product generation: {e}")
 
-            LOGGER.info(f"Product generation complete")
-            
+            LOGGER.info("Product generation complete")
             return generated_products
 
     def _parse_product_concept(self, concept_text: str) -> Dict:

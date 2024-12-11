@@ -6,6 +6,7 @@ from os import environ as env
 import logger
 import requests
 import sys
+import random
 
 
 app = Flask(__name__)
@@ -184,13 +185,26 @@ Get Initial N Products
 @app.route("/api/initial_products", methods=["GET"])
 def initial_products():
     try:
+        
         conn = setup_connection()
-
+        res = []
+        
+        num_total_products = request.args.get('num_total_products', 8)
+        num_ai_generated_products = request.args.get('num_ai_generated_products', 0)        
         cur = conn.cursor()
+        # Get ai-generated products
+        if num_ai_generated_products > 0:
+            cur.execute(f"SELECT * FROM ai_generated_products ORDER BY RANDOM() LIMIT {num_ai_generated_products}")  # TODO: replace w products_for_display ?
+            res.extend(cur.fetchall())
+        
+        # Get real products
+        num_real_products = num_total_products - len(res)
+        cur.execute(f"SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT {num_real_products}")  # TODO: replace w products_for_display ?
+        res.extend(cur.fetchall())
 
-        cur.execute("SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT 8")
-
-        return cur.fetchall()
+        # Return a randomly ordered list of both
+        return random.shuffle(res)
+    
     except snowflake.connector.Error as e:
         print(f"Error: {e}")
         conn.rollback()

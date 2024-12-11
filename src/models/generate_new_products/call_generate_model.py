@@ -11,7 +11,6 @@ def call_generate_products(user_id=None, num_products=1):
     if not user_id:
         user_id = TESTING_USER_ID
         LOGGER.info(f"No user_id provided. Falling back to testing user ID: {user_id}")
-    print("Using userId: ", user_id)
     domain_expander = DomainExpander()
     product_generator = generator_funcs.CreativeProductGenerator(CONNECTION_PARAMS, domain_expander, max_workers=5)
     
@@ -25,12 +24,11 @@ def call_generate_products(user_id=None, num_products=1):
 
 @app.route('/generate_fake_product', methods=['POST'])
 def generate_products():
-    print("in")
     # Get the parameters from the JSON body of the request
     data = request.get_json()
     user_id = data.get('user_id', None)
     num_products = data.get('num_products', 1)
-    print(f"Generating {num_products}")
+    print(f"Generating {num_products} new products...")
     
     # Call the generate function
     generated_products = call_generate_products(user_id=user_id, num_products=num_products)
@@ -39,4 +37,5 @@ def generate_products():
     return jsonify(generated_products), 200
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5007)
+    # app.run(debug=True, host="0.0.0.0", port=5007)
+    call_generate_products()

@@ -236,7 +236,7 @@ class CreativeProductGenerator:
             return None
 
 
-    def generate_creative_products(self, target_table='generated_products', num_products=1, user_id=None) -> List[Dict]:
+    def generate_creative_products(self, target_table='generated_products', num_products=1, user_id=None, store_image_in_s3=False) -> List[Dict]:
         """
         Main processing function to generate creative new products and store product images in S3.
 
@@ -279,14 +279,15 @@ class CreativeProductGenerator:
                             'imagePrompt': full_product_data.get('revised_prompt', '')
                         })
                         
-                        # Store product image in S3 asynchronously
-                        executor.submit(
-                            store_product_image_in_s3, 
-                            parsed_product["productId"], 
-                            parsed_product["imageUrl"], 
-                            "amazontoyreviews", 
-                            conn
-                        )
+                        if store_image_in_s3:
+                            # Store product image in S3 asynchronously
+                            executor.submit(
+                                store_product_image_in_s3, 
+                                parsed_product["productId"], 
+                                parsed_product["imageUrl"], 
+                                "amazontoyreviews", 
+                                conn
+                            )
                         
                         generated_products.append(parsed_product)
                     except Exception as e:

@@ -5,7 +5,7 @@ from domain_expander import DomainExpander
 
 app = Flask(__name__)
 
-def call_generate_products(user_id=None, num_products=1):
+def call_generate_products(user_id=None, num_products=1, store_image_in_s3=False):
     target_table = "ai_generated_products"
     
     if not user_id:
@@ -17,9 +17,10 @@ def call_generate_products(user_id=None, num_products=1):
     generated_products = product_generator.generate_creative_products(
         target_table=target_table, 
         num_products=num_products,
-        user_id=user_id
+        user_id=user_id,
+        # TODO: Set to True once a basic deployment is working ?   
+        store_image_in_s3=store_image_in_s3
     )
-    
     return generated_products
 
 @app.route('/generate_fake_product', methods=['POST'])
@@ -38,4 +39,6 @@ def generate_products():
 
 if __name__ == "__main__":
     # app.run(debug=True, host="0.0.0.0", port=5007)
-    call_generate_products()
+    # call_generate_products(store_image_in_s3=True)
+    call_generate_products(store_image_in_s3=False)
+    

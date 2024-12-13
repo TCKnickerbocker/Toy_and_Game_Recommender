@@ -21,6 +21,7 @@ load_dotenv()
 
 def setup_connection():
     try:
+
         conn = snowflake.connector.connect(
             user=os.getenv("SNOWFLAKE_USER"),
             password=os.getenv("SNOWFLAKE_PASSWORD"),
@@ -33,6 +34,8 @@ def setup_connection():
         return conn
     except snowflake.connector.Error as e:
         print(f"Error connecting to Snowflake: {e}", file=sys.stderr)
+        print(os.getenv("SNOWFLAKE_USER"))
+        print(os.getenv("SNOWFLAKE_PASSWORD"))
         raise
 
 # Checks if a user exists or not
@@ -216,6 +219,7 @@ def get_recommendations_model_1():
         - JSON response containing the most similar products or an error message.
     """
     try:
+        print("MODEL 1")
         # Extract query parameters
         user_id = request.args.get('user_id', None)  # User ID required, but no default
         if not user_id:
@@ -265,6 +269,7 @@ def get_recommendations_model_2():
         - JSON response containing the most similar products or an error message.
     """
     try:
+        print("MODEL 2")
         # Extract query parameters
         user_id = request.args.get('user_id', None)  # User ID required, but no default
         if not user_id:
@@ -313,6 +318,7 @@ def get_recommendations_model_3():
         - JSON response containing the most similar products or an error message.
     """
     try:
+        print("MODEL 3")
         # Extract query parameters
         user_id = request.args.get('user_id', None)  # User ID required, but no default
         if not user_id:
@@ -362,6 +368,7 @@ def get_recommendations_model_4():
         - JSON response containing the most similar products or an error message.
     """
     try:
+        print("MODEL 4")
         # Extract query parameters
         user_id = request.args.get('user_id', None)  # User ID required, but no default
         if not user_id:

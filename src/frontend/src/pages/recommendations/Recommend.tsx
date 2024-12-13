@@ -4,6 +4,8 @@ import {
   Typography,
   Backdrop,
   CircularProgress,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import Grid from "@mui/material/Grid2";
@@ -55,6 +57,8 @@ export default function RecommendationsPage() {
   const [isCardLoading, setIsCardLoading] = useState(true);
   const [items, setItems] = useState<RateItemProps[]>([]);
   const [refreshesLeft, setRefreshesLeft] = useState(3);
+  const [model, setModel] = useState("Model 1");
+  const [modelEndpoint, setModelEndpoint] = useState("most_similar_products");
 
   // TODO: STILL RENDERS AS NOTHING ON RELOAD
   const [userId, setUserId] = useState("");
@@ -90,10 +94,9 @@ export default function RecommendationsPage() {
       let response;
 
       if (kind == "similar") {
-        response = await fetch(
-          `/api/most_similar_products?user_id=${user_id}`,
-          { method: "GET" },
-        );
+        response = await fetch(`/api/${modelEndpoint}?user_id=${user_id}`, {
+          method: "GET",
+        });
       } else {
         response = await fetch("/api/initial_products", { method: "GET" });
       }
@@ -142,6 +145,7 @@ export default function RecommendationsPage() {
   // Runs once when page renders
   useEffect(() => {
     console.log(`USER ID: ${userId}`);
+    console.log(user);
     if (user && user.user_id && user.nickname) {
       setUserId(user.user_id);
       const userData = {
@@ -224,6 +228,24 @@ export default function RecommendationsPage() {
     setIsCardLoading(false);
   };
 
+  const handleModelChange = async (event: any) => {
+    const modelType = event.target.value;
+    setModel(event.target.value);
+    if (modelType == "Model 1") {
+      console.log("most_similar_products");
+      setModelEndpoint("most_similar_products");
+    } else if (modelType == "Model 2") {
+      console.log("recommend_products_sentiment_model");
+      setModelEndpoint("recommend_products_sentiment_model");
+    } else if (modelType == "Model 3") {
+      console.log("recommend_products_llm_model");
+      setModelEndpoint("recommend_products_llm_model");
+    } else {
+      console.log("recommend_products_similarity_oyt_llm_combined_model");
+      setModelEndpoint("recommend_products_similarity_oyt_llm_combined_model");
+    }
+  };
+
   // ? FUTURE: Get the cards to have the skeleton and populate with data, one by one instead of all at once
   return (
     <Box>
@@ -239,6 +261,19 @@ export default function RecommendationsPage() {
       </Box>
       <Box display="flex" justifyContent="center">
         <Typography variant="h6">Refreshes Left: {refreshesLeft}</Typography>
+      </Box>
+      <Box display="flex" justifyContent="center" alignItems="center">
+        <Box sx={{ marginRight: "5px" }}>
+          <Typography>Which Model do you want to use?</Typography>
+        </Box>
+        <Box>
+          <Select onChange={handleModelChange} label="Model" value={model}>
+            <MenuItem value={"Model 1"}>Model 1</MenuItem>
+            <MenuItem value={"Model 2"}>Model 2</MenuItem>
+            <MenuItem value={"Model 3"}>Model 3</MenuItem>
+            <MenuItem value={"Model 4"}>Model 4</MenuItem>
+          </Select>
+        </Box>
       </Box>
       <Box display="flex" justifyContent="center">
         <Button

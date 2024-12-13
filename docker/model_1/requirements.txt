@@ -23,6 +23,8 @@ prometheus-flask-exporter
 
 # Natural Language Processing
 spacy==3.7.4
+profanity_filter
+ordered-set==3.0
 sentence_transformers
 nltk
 

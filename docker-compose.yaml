@@ -1,16 +1,14 @@
-version: '2.31.0'
-
 services:
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/frontend/Dockerfile
-    ports:
-      - "3000:3000"
-    networks:
-      - app-network
-    depends_on:
-      - api
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/frontend/Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     - api
 
   api:
     build: 
@@ -57,19 +55,20 @@ services:
       - '--web.listen-address=:9090'  # Ensure Prometheus listens on port 9090 for scraping
       - '--web.external-url=http://localhost:9090'
       - '--web.enable-lifecycle'
-  # grafana:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/monitoring/grafana/Dockerfile
-  #   ports:
-  #     - "3001:3000"
-  #   networks:
-  #     - monitoring-network
-  #   depends_on:
-  #     - prometheus
-  #   volumes:
-  #     - ./docker/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
-  #     - ./docker/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+
+  grafana:
+    build:
+      context: .
+      dockerfile: docker/monitoring/grafana/Dockerfile
+    ports:
+      - "6000:6000"
+    networks:
+      - monitoring-network
+    depends_on:
+      - prometheus
+    volumes:
+      - ./docker/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
 
 networks:
   app-network:

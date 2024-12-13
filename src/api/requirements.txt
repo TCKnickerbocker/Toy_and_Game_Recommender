@@ -4,3 +4,4 @@ snowflake-connector-python
 requests
 prometheus-flask-exporter
 logger
+flask_cors

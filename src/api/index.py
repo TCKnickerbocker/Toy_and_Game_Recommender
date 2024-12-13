@@ -7,9 +7,11 @@ import logger
 import requests
 import sys
 import random
+from flask_cors import CORS
 
 
 app = Flask(__name__)
+CORS(app)  # This will enable CORS for all routes
 app.secret_key = env.get("APP_SECRET_KEY")
 
 # Load trained models
@@ -185,26 +187,28 @@ Get Initial N Products
 @app.route("/api/initial_products", methods=["GET"])
 def initial_products():
     try:
-        
         conn = setup_connection()
-        res = []
-        
-        num_total_products = request.args.get('num_total_products', 8)
-        num_ai_generated_products = request.args.get('num_ai_generated_products', 0)        
-        cur = conn.cursor()
-        # Get ai-generated products
-        if num_ai_generated_products > 0:
-            cur.execute(f"SELECT * FROM ai_generated_products ORDER BY RANDOM() LIMIT {num_ai_generated_products}")  # TODO: replace w products_for_display ?
-            res.extend(cur.fetchall())
-        
-        # Get real products
-        num_real_products = num_total_products - len(res)
-        cur.execute(f"SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT {num_real_products}")  # TODO: replace w products_for_display ?
-        res.extend(cur.fetchall())
+        # res = []
 
-        # Return a randomly ordered list of both
-        return random.shuffle(res)
-    
+        # num_total_products = request.args.get('num_total_products', 8)
+        # num_ai_generated_products = request.args.get('num_ai_generated_products', 0) 
+
+        cur = conn.cursor()
+        # if num_ai_generated_products > 0:
+        #     cur.execute(f"SELECT * FROM ai_generated_products ORDER BY RANDOM() LIMIT {num_ai_generated_products}")  # TODO: replace w products_for_display ?
+        #     res.extend(cur.fetchall())
+        
+        # # Get real products
+        # num_real_products = num_total_products - len(res)
+        # cur.execute(f"SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT {num_real_products}")  # TODO: replace w products_for_display ?
+        # res.extend(cur.fetchall())
+
+        # # Return a randomly ordered list of both
+        # return random.shuffle(res)
+
+        cur.execute("SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT 8")
+
+        return cur.fetchall()
     except snowflake.connector.Error as e:
         print(f"Error: {e}")
         conn.rollback()
@@ -213,7 +217,9 @@ def initial_products():
     
     return {"message": "Something went wrong with fetching initial products"}, 400
 
-MODEL_1_URL = "http://localhost:5003/most_similar_products"  # Adjust as needed
+
+MODEL_1_URL = "http://model_1:5003/most_similar_products"
+# ^When in Docker, use model_1:5003. When not in Docker, use localhost:5003
 @app.route("/api/most_similar_products", methods=["GET"])
 def get_recommendations_model_1():
     """
@@ -262,7 +268,8 @@ def get_recommendations_model_1():
         return jsonify({"error": "Failed to retrieve most similar products", "details": str(e)}), 500
 
 
-MODEL_2_URL = "http://localhost:5004/recommend_products_sentiment_model"  # TODO adjust front-end to use
+MODEL_2_URL = "http://model_2:5004/recommend_products_sentiment_model"
+# ^When in Docker, use model_1:5003. When not in Docker, use localhost:5004
 @app.route("/api/recommend_products_sentiment_model", methods=["GET"])
 def get_recommendations_model_2():
     """
@@ -310,7 +317,7 @@ def get_recommendations_model_2():
         print(f"Error in /api/most_similar_products: {e}")
         return jsonify({"error": "Failed to retrieve most similar products", "details": str(e)}), 500
 
-MODEL_3_URL = "http://localhost:5005/recommend_products_llm_model"  # TODO adjust front-end to use
+MODEL_3_URL = "http://model_3:5005/recommend_products_llm_model"  # TODO adjust front-end to use
 @app.route("/api/recommend_products_llm_model", methods=["GET"])
 def get_recommendations_model_3():
     """
@@ -359,7 +366,7 @@ def get_recommendations_model_3():
         return jsonify({"error": "Failed to retrieve most similar products", "details": str(e)}), 500
 
 
-MODEL_4_URL = "http://localhost:5006/recommend_products_similarity_oyt_llm_combined_model"  # TODO adjust front-end to use
+MODEL_4_URL = "http://model_4:5006/recommend_products_similarity_oyt_llm_combined_model"  # TODO adjust front-end to use
 @app.route("/api/recommend_products_similarity_oyt_llm_combined_model", methods=["GET"])
 def get_recommendations_model_4():
     """
@@ -412,7 +419,7 @@ def get_recommendations_model_4():
 Generate Fake Product
     - Will call the NLP Model to generate a fake product based on the user's ratings
 """
-PRODUCT_GENERATOR_URL = "http://localhost:5007/generate_fake_product"  # Replace as needed
+PRODUCT_GENERATOR_URL = "http://generate_new_products:5007/generate_fake_product"  
 @app.route("/api/generate_fake_product", methods=["GET"])
 def generate_fake_products():
     try:
@@ -431,7 +438,7 @@ def generate_fake_products():
         }
 
         # Call the product generation API in the other container
-        response = requests.post(PRODUCT_GENERATOR_URL, json=payload)
+        response = requests.get(PRODUCT_GENERATOR_URL, json=payload)
 
         # Check if the request was successful
         if response.status_code == 200:

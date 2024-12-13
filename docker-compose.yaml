@@ -1,68 +1,114 @@
-version: '2.31.0'
-
 services:
   frontend:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
     ports:
-      - "3000:3000"
+      - "4000:4000"
     networks:
       - app-network
-    depends_on:
-      - api
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_PATH=/app/node_modules
+    volumes:
+      - ./src/frontend:/app
+      - frontend-node-modules:/app/node_modules
 
   api:
     build: 
       context: .
       dockerfile: docker/api/Dockerfile
-    ports:
-      - "8000:8000"
     networks:
       - app-network
+    ports:
+      - "8000:8000"
     depends_on:
       - model_1
+      - model_2
+      - model_3
+      - model_4
       - generate_new_products
 
   model_1:
     build: 
       context: .
       dockerfile: docker/model_1/Dockerfile
+    networks:
+      - app-network
     ports:
       - "5003:5003"
-      - "9100:9100" 
+      - "9103:9103" 
     environment:
-      - METRICS_PORT=9100  
+      - METRICS_PORT=9103
+
+  model_2:
+    build: 
+      context: .
+      dockerfile: docker/model_2/Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "5004:5004"
+      - "9104:9104" 
+    environment:
+      - METRICS_PORT=9104
+
+  model_3:
+    build: 
+      context: .
+      dockerfile: docker/model_3/Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "5005:5005"
+      - "9105:9105" 
+    environment:
+      - METRICS_PORT=9105
+
+  model_4:
+    build: 
+      context: .
+      dockerfile: docker/model_4/Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "5006:5006"
+      - "9106:9106"
+    environment:
+      - METRICS_PORT=9106
 
   generate_new_products:
     build: 
       context: .
       dockerfile: docker/generate_new_products/Dockerfile
+    networks:
+      - app-network
     ports:
       - "5007:5007"
-      - "9101:9101" 
+      - "9107:9101" 
     environment:
-      - METRICS_PORT=9101
+      - METRICS_PORT=9107
 
-  prometheus:
-    build:
-      context: .
-      dockerfile: docker/monitoring/prometheus/Dockerfile
-    ports:
-      - "9090:9090"
-      - "9091:9091"
-    volumes:
-      - ./docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - '--web.listen-address=:9090'  # Ensure Prometheus listens on port 9090 for scraping
-      - '--web.external-url=http://localhost:9090'
-      - '--web.enable-lifecycle'
+  # prometheus:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/monitoring/prometheus/Dockerfile
+  #   ports:
+  #     - "9090:9090"
+  #     - "9100:9100"
+  #   volumes:
+  #     - ./docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #   command:
+  #     - '--web.listen-address=:9090'  # Ensure Prometheus listens on port 9090 for scraping
+  #     - '--web.external-url=http://localhost:9090'  # TODO: recall prometheus.com/9090
+  #     - '--web.enable-lifecycle'
+
   # grafana:
   #   build:
   #     context: .
   #     dockerfile: docker/monitoring/grafana/Dockerfile
   #   ports:
-  #     - "3001:3000"
+  #     - "3000:3000"
   #   networks:
   #     - monitoring-network
   #   depends_on:
@@ -76,3 +122,7 @@ networks:
     driver: bridge
   monitoring-network:
     driver: bridge
+
+
+volumes:
+  frontend-node-modules:

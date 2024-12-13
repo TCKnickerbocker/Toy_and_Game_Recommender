@@ -20,7 +20,7 @@ export default function GenerateProductPage() {
 
     try {
       const response = await fetch(
-        `/api/generate_fake_product?user_id=${userId}&num_products=3`,
+        `/api/generate_fake_product?user_id=${userId}&num_products=1`,
       );
 
       if (!response.ok) {

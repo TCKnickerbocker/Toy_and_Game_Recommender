@@ -6,6 +6,17 @@ from os import environ as env
 import logger
 import requests
 import sys
+sys.path.append("../models/generate_new_products")
+from call_generate_model import call_generate_products
+sys.path.append("../models/model_1")
+from call_model_1 import call_model_1
+sys.path.append("../models/model_2")
+from call_model_2 import call_model_2
+sys.path.append("../models/model_3")
+from call_model_3 import call_model_3
+sys.path.append("../models/model_4")
+from call_model_4 import call_model_4
+
 
 
 app = Flask(__name__)
@@ -188,8 +199,23 @@ Get Initial N Products
 def initial_products():
     try:
         conn = setup_connection()
+        # res = []
+
+        # num_total_products = request.args.get('num_total_products', 8)
+        # num_ai_generated_products = request.args.get('num_ai_generated_products', 0) 
 
         cur = conn.cursor()
+        # if num_ai_generated_products > 0:
+        #     cur.execute(f"SELECT * FROM ai_generated_products ORDER BY RANDOM() LIMIT {num_ai_generated_products}")  # TODO: replace w products_for_display ?
+        #     res.extend(cur.fetchall())
+        
+        # # Get real products
+        # num_real_products = num_total_products - len(res)
+        # cur.execute(f"SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT {num_real_products}")  # TODO: replace w products_for_display ?
+        # res.extend(cur.fetchall())
+
+        # # Return a randomly ordered list of both
+        # return random.shuffle(res)
 
         cur.execute("SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT 8")
 
@@ -230,21 +256,23 @@ def get_recommendations_model_1():
         by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
 
         # Prepare query parameters for the second container's API
-        params = {
-            'user_id': user_id,
-            'num_recently_rated': num_recently_rated,
-            'num_recs_to_give': num_recs_to_give,
-            'by_title': by_title
-        }
+        # params = {
+        #     'user_id': user_id,
+        #     'num_recently_rated': num_recently_rated,
+        #     'num_recs_to_give': num_recs_to_give,
+        #     'by_title': by_title
+        # }
 
         # Call the second container's API
-        response = requests.get(MODEL_1_URL, params=params)
+        # response = requests.get(MODEL_1_URL, params=params)
+        response = call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title)
 
-        if response.status_code == 200:
+        # if response.status_code == 200:
             # Return the success response from the second container's API
-            return jsonify(response.json()), 200
-        else:
-            return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
+        # return jsonify(response.json()), 200
+        return response
+        # else:
+        #     return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
         
     except Exception as e:
         # Log & return the error
@@ -280,21 +308,23 @@ def get_recommendations_model_2():
         by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
 
         # Prepare query parameters for the second container's API
-        params = {
-            'user_id': user_id,
-            'num_recently_rated': num_recently_rated,
-            'num_recs_to_give': num_recs_to_give,
-            'by_title': by_title
-        }
+        # params = {
+        #     'user_id': user_id,
+        #     'num_recently_rated': num_recently_rated,
+        #     'num_recs_to_give': num_recs_to_give,
+        #     'by_title': by_title
+        # }
 
         # Call the second container's API
-        response = requests.get(MODEL_2_URL, params=params)
+        # response = requests.get(MODEL_2_URL, params=params)
+        response = call_model_2(user_id, num_recently_rated, num_recs_to_give, by_title)
 
-        if response.status_code == 200:
+        # if response.status_code == 200:
             # Return the success response from the second container's API
-            return jsonify(response.json()), 200
-        else:
-            return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
+        # return jsonify(response.json()), 200
+        return response
+        # else:
+        #     return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
         
     except Exception as e:
         # Log & return the error
@@ -329,21 +359,23 @@ def get_recommendations_model_3():
         by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
 
         # Prepare query parameters for the second container's API
-        params = {
-            'user_id': user_id,
-            'num_recently_rated': num_recently_rated,
-            'num_recs_to_give': num_recs_to_give,
-            'by_title': by_title
-        }
+        # params = {
+        #     'user_id': user_id,
+        #     'num_recently_rated': num_recently_rated,
+        #     'num_recs_to_give': num_recs_to_give,
+        #     'by_title': by_title
+        # }
 
         # Call the second container's API
-        response = requests.get(MODEL_3_URL, params=params)
+        # response = requests.get(MODEL_3_URL, params=params)
+        response = call_model_3(user_id, num_recently_rated, num_recs_to_give, by_title)
 
-        if response.status_code == 200:
+        # if response.status_code == 200:
             # Return the success response from the second container's API
-            return jsonify(response.json()), 200
-        else:
-            return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
+        # return jsonify(response.json()), 200
+        return response
+        # else:
+        #     return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
         
     except Exception as e:
         # Log & return the error
@@ -379,21 +411,23 @@ def get_recommendations_model_4():
         by_title = request.args.get('by_title', 'false').lower() == 'true'  # Convert to boolean
 
         # Prepare query parameters for the second container's API
-        params = {
-            'user_id': user_id,
-            'num_recently_rated': num_recently_rated,
-            'num_recs_to_give': num_recs_to_give,
-            'by_title': by_title
-        }
+        # params = {
+        #     'user_id': user_id,
+        #     'num_recently_rated': num_recently_rated,
+        #     'num_recs_to_give': num_recs_to_give,
+        #     'by_title': by_title
+        # }
 
         # Call the second container's API
-        response = requests.get(MODEL_4_URL, params=params)
+        # response = requests.get(MODEL_4_URL, params=params)
+        response = call_model_4(user_id, num_recently_rated, num_recs_to_give, by_title)
 
-        if response.status_code == 200:
+        # if response.status_code == 200:
             # Return the success response from the second container's API
-            return jsonify(response.json()), 200
-        else:
-            return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
+        # return jsonify(response.json()), 200
+        return response
+        # else:
+        #     return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
         
     except Exception as e:
         # Log & return the error
@@ -418,23 +452,25 @@ def generate_fake_products():
             return jsonify({'SAFETY CATCH: tried to generate too many products'}), 403
 
         # Prepare the request payload
-        payload = {
-            "user_id": user_id,
-            "num_products": num_products
-        }
+        # payload = {
+        #     "user_id": user_id,
+        #     "num_products": num_products
+        # }
 
         # Call the product generation API in the other container
-        response = requests.post(PRODUCT_GENERATOR_URL, json=payload)
+        # response = requests.post(PRODUCT_GENERATOR_URL, json=payload)
+        response = call_generate_products(user_id, num_products)
 
         # Check if the request was successful
-        if response.status_code == 200:
-            return jsonify(response.json()), 200
-        else:
+        # if response.status_code == 200:
+        # return jsonify(response.json()), 200
+        return response
+        # else:
             # Handle API errors from the first container
-            return jsonify({
-                "error": "Failed to generate products from the generator service",
-                "details": response.json()
-            }), response.status_code
+            # return jsonify({
+            #     "error": "Failed to generate products from the generator service",
+            #     "details": response.json()
+            # }), response.status_code
 
     except Exception as e:
         # Log the error

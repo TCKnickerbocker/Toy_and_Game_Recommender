@@ -6,7 +6,7 @@ import model_1_alg
 from model_1_configs import CONNECTION_PARAMS
 
 # Prometheus monitoring
-from prometheus_client import Counter, Histogram, start_http_server
+# from prometheus_client import Counter, Histogram, start_http_server
 import time
 import logging
 import concurrent.futures
@@ -15,22 +15,22 @@ import os
 
 app = Flask(__name__)
 
-# Prometheus Metrics
-RECOMMENDATIONS_TOTAL = Counter(
-    'recommendations_total', 
-    'Total number of recommendation requests',
-    ['method', 'endpoint']
-)
-RECOMMENDATION_LATENCY = Histogram(
-    'recommendation_latency_seconds', 
-    'Time spent generating recommendations',
-    ['method', 'endpoint']
-)
-RECOMMENDATION_ERRORS = Counter(
-    'recommendation_errors_total', 
-    'Total number of recommendation errors',
-    ['method', 'endpoint', 'error_type']
-)
+# # Prometheus Metrics
+# RECOMMENDATIONS_TOTAL = Counter(
+#     'recommendations_total', 
+#     'Total number of recommendation requests',
+#     ['method', 'endpoint']
+# )
+# RECOMMENDATION_LATENCY = Histogram(
+#     'recommendation_latency_seconds', 
+#     'Time spent generating recommendations',
+#     ['method', 'endpoint']
+# )
+# RECOMMENDATION_ERRORS = Counter(
+#     'recommendation_errors_total', 
+#     'Total number of recommendation errors',
+#     ['method', 'endpoint', 'error_type']
+# )
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -49,11 +49,11 @@ def get_db_connection():
         return conn
     except DatabaseError as e:
         logger.error(f"Database connection error: {e}")
-        RECOMMENDATION_ERRORS.labels(
-            method='GET', 
-            endpoint='/most_similar_products', 
-            error_type='db_connection'
-        ).inc()
+        # RECOMMENDATION_ERRORS.labels(
+        #     method='GET', 
+        #     endpoint='/most_similar_products', 
+        #     error_type='db_connection'
+        # ).inc()
         raise
 
 def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False): 
@@ -130,19 +130,19 @@ def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False):
     
     except Exception as e:
         print(f"Error in call_model_1: {e}")
-        RECOMMENDATION_ERRORS.labels(
-            method='GET', 
-            endpoint='/most_similar_products', 
-            error_type='recommendation_generation'
-        ).inc()
+        # RECOMMENDATION_ERRORS.labels(
+        #     method='GET', 
+        #     endpoint='/most_similar_products', 
+        #     error_type='recommendation_generation'
+        # ).inc()
         raise
-    finally:
+    # finally:
         # Record latency
-        latency = time.time() - start_time
-        RECOMMENDATION_LATENCY.labels(
-            method='GET', 
-            endpoint='/most_similar_products'
-        ).observe(latency)
+        # latency = time.time() - start_time
+        # RECOMMENDATION_LATENCY.labels(
+        #     method='GET', 
+        #     endpoint='/most_similar_products'
+        # ).observe(latency)
 
 @app.route("/most_similar_products", methods=["GET"])
 def most_similar_products():
@@ -151,10 +151,10 @@ def most_similar_products():
     Enhanced with metrics and improved error handling.
     """
     # Increment total recommendations counter
-    RECOMMENDATIONS_TOTAL.labels(
-        method='GET', 
-        endpoint='/most_similar_products'
-    ).inc()
+    # RECOMMENDATIONS_TOTAL.labels(
+    #     method='GET', 
+    #     endpoint='/most_similar_products'
+    # ).inc()
 
     try:
         # Extract query parameters

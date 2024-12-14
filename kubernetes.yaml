@@ -1,32 +1,196 @@
+# NOTE: I set all replica counts to 1 for now
+
+
+# Frontend Deployment
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bb-demo
+  name: frontend-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      bb: web
+      app: frontend
   template:
     metadata:
       labels:
-        bb: web
+        app: frontend
     spec:
       containers:
-        - name: bb-site
-          image: toy_and_game_recommender-api
-          imagePullPolicy: Never
+      - name: frontend
+        image: frontend-image:latest
+        ports:
+        - containerPort: 4000
+
+# Frontend Service
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: bb-entrypoint
-  namespace: default
+  name: frontend-service
 spec:
   type: NodePort
   selector:
-    bb: web
+    app: frontend
   ports:
-    - port: 8000
-      targetPort: 8000
-      nodePort: 30004
+  - protocol: TCP
+    port: 4000
+    targetPort: 4000
+    nodePort: 30001
+
+# API Deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: api
+        image: api-image:latest
+        ports:
+        - containerPort: 8000
+
+# API Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+spec:
+  type: ClusterIP
+  selector:
+    app: api
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+
+# Model 1 Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-1-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: model-1
+  template:
+    metadata:
+      labels:
+        app: model-1
+    spec:
+      containers:
+      - name: model-1
+        image: model-1-image:latest
+        ports:
+        - containerPort: 5003
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: model-1-service
+spec:
+  type: ClusterIP
+  selector:
+    app: model-1
+  ports:
+  - protocol: TCP
+    port: 5003
+    targetPort: 5003
+
+# Model 2, 3, 4 Deployments and Services (Repeat for all models with unique labels and ports)
+
+# Prometheus Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus
+        ports:
+        - containerPort: 9090
+      volumes:
+      - name: prometheus-config
+        configMap:
+          name: prometheus-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+spec:
+  type: NodePort
+  selector:
+    app: prometheus
+  ports:
+  - protocol: TCP
+    port: 9090
+    targetPort: 9090
+    nodePort: 30090
+
+# Grafana Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana-oss:latest
+        ports:
+        - containerPort: 3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+spec:
+  type: NodePort
+  selector:
+    app: grafana
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 3000
+    nodePort: 30300

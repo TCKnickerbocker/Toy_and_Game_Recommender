@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-1-deployment
+  labels:
+    app: model-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: model-1
+  template:
+    metadata:
+      labels:
+        app: model-1
+    spec:
+      containers:
+      - name: model-1-container
+        image: thecscichronicles/model-1:latest
+        ports:
+        - containerPort: 5003
+        - containerPort: 9103
+        env:
+        - name: METRICS_PORT
+          value: "9103"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1"

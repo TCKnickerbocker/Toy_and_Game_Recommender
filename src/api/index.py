@@ -138,8 +138,8 @@ def initial_products():
         # Observe total recommendation latency
         recommendation_latency = time.time() - start_time
         service_metrics.observe_recommendation_latency('/initial_products', recommendation_latency)
-
         return results
+
     except snowflake.connector.Error as e:
         # Track database errors
         service_metrics.track_recommendation_error('/initial_products', 'database_error')

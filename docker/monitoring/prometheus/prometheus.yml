@@ -16,7 +16,7 @@ scrape_configs:
   # API Service Metrics
   - job_name: 'api-service'
     static_configs:
-      - targets: ['api:9100']
+      - targets: ['api:9102']
     metrics_path: '/metrics'
 
   # Model Services Metrics

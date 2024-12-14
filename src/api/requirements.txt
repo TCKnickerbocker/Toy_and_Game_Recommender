@@ -5,4 +5,4 @@ requests
 prometheus-flask-exporter
 logger
 prometheus-client
-# flask_cors
+flask_cors

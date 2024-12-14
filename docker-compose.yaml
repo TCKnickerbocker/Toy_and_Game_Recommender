@@ -32,6 +32,15 @@ services:
       - generate_new_products
     environment:
       - PROMETHEUS_MULTIPROC_DIR=/tmp
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - /tmp:/tmp
 
@@ -60,6 +69,15 @@ services:
       - "9104:9104"
     environment:
       - METRICS_PORT=9104
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
   model_3:
     build:
@@ -73,6 +91,15 @@ services:
       - "9105:9105"
     environment:
       - METRICS_PORT=9105
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
   model_4:
     build:
@@ -86,6 +113,15 @@ services:
       - "9106:9106"
     environment:
       - METRICS_PORT=9106
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
   generate_new_products:
     build:
@@ -99,6 +135,15 @@ services:
       - "9107:9107"
     environment:
       - METRICS_PORT=9107
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
   # Prometheus Service
   prometheus:
@@ -136,23 +181,23 @@ services:
       - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
 
   # Grafana Service
-  grafana:
-    image: grafana/grafana-oss:latest
-    container_name: grafana
-    networks:
-      - monitoring-network
-    ports:
-      - "9090:9090"
-      - "9091:9091"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./docker/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      - ./docker/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on:
-      - prometheus
+  # grafana:
+  #   image: grafana/grafana-oss:latest
+  #   container_name: grafana
+  #   networks:
+  #     - monitoring-network
+  #   ports:
+  #     - "9090:9090"
+  #     - "9091:9091"
+  #   volumes:
+  #     - grafana-data:/var/lib/grafana
+  #     - ./docker/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+  #     # - ./docker/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+  #   environment:
+  #     - GF_SECURITY_ADMIN_USER=admin
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   depends_on:
+  #     - prometheus
 
 networks:
   app-network:

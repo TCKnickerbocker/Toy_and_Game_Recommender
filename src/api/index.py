@@ -3,116 +3,6 @@ from dotenv import load_dotenv
 import snowflake.connector
 import os
 import logger
-<<<<<<< HEAD
-import requests
-import sys
-sys.path.append("../models/generate_new_products")
-from call_generate_model import call_generate_products
-sys.path.append("../models/model_1")
-from call_model_1 import call_model_1
-sys.path.append("../models/model_2")
-from call_model_2 import call_model_2
-sys.path.append("../models/model_3")
-from call_model_3 import call_model_3
-sys.path.append("../models/model_4")
-from call_model_4 import call_model_4
-
-
-
-app = Flask(__name__)
-app.secret_key = env.get("APP_SECRET_KEY")
-
-# Load trained models
-# cf_model = ALSModel.load("models/collaborative_filtering")
-
-# Load Spark session
-# spark = SparkSession.builder.appName("RecommendationAPI").getOrCreate()
-
-load_dotenv()
-
-def setup_connection():
-    try:
-
-        conn = snowflake.connector.connect(
-            user=os.getenv("SNOWFLAKE_USER"),
-            password=os.getenv("SNOWFLAKE_PASSWORD"),
-            account=os.getenv("SNOWFLAKE_ACCOUNT"),
-            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-            database=os.getenv("SNOWFLAKE_DATABASE"),
-            schema=os.getenv("SNOWFLAKE_SCHEMA")
-        )
-
-        return conn
-    except snowflake.connector.Error as e:
-        print(f"Error connecting to Snowflake: {e}", file=sys.stderr)
-        print(os.getenv("SNOWFLAKE_USER"))
-        print(os.getenv("SNOWFLAKE_PASSWORD"))
-        raise
-
-# Checks if a user exists or not
-def check_user_exists(user_id):
-    try:
-        conn = setup_connection()
-
-        cur = conn.cursor()
-
-        cur.execute("SELECT * FROM user_accounts WHERE user_id = %s", (user_id))
-
-        results = cur.fetchall()
-        return len(results) > 0
-    except snowflake.connector.Error as e:
-        print(f"Error: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
-    
-    return False
-
-def check_rating_exists(user_id, product_id):
-    try:
-        conn = setup_connection()
-
-        cur = conn.cursor()
-
-        cur.execute("SELECT * FROM user_ratings WHERE user_id = %s AND parent_asin = %s", (user_id, product_id))
-
-        results = cur.fetchall()
-        return len(results) > 0
-    except snowflake.connector.Error as e:
-        print(f"Error: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
-    
-    return False
-
-# Will delete all the user's ratings if they have more than 100
-def check_user_rating_threshold(user_id):
-    try:
-        conn = setup_connection()
-
-        cur = conn.cursor()
-
-        cur.execute("""
-            DELETE FROM user_ratings
-            WHERE user_id IN (
-                SELECT user_id
-                FROM user_ratings
-                GROUP BY user_id
-                HAVING COUNT(*) > 100
-            )
-            AND user_id = %s;
-            """, (user_id))
-        conn.commit()
-    except snowflake.connector.Error as e:
-        print(f"Error: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
-    
-    return
-    
-=======
 import time
 import random
 import requests
@@ -141,7 +31,6 @@ MODEL_2_URL = "http://model_2:5004/recommend_products_sentiment_model"
 MODEL_3_URL = "http://model_3:5005/recommend_products_llm_model" 
 MODEL_4_URL = "http://model_4:5006/recommend_products_similarity_oyt_llm_combined_model" 
 # ^When in Docker, use model_n:<port>. When not in Docker, use localhost:<port>
->>>>>>> main
 
 
 
@@ -217,28 +106,8 @@ def initial_products():
     start_time = time.time()
     try:
         conn = setup_connection()
-<<<<<<< HEAD
-        # res = []
-
-        # num_total_products = request.args.get('num_total_products', 8)
-        # num_ai_generated_products = request.args.get('num_ai_generated_products', 0) 
-
-        cur = conn.cursor()
-        # if num_ai_generated_products > 0:
-        #     cur.execute(f"SELECT * FROM ai_generated_products ORDER BY RANDOM() LIMIT {num_ai_generated_products}")  # TODO: replace w products_for_display ?
-        #     res.extend(cur.fetchall())
-        
-        # # Get real products
-        # num_real_products = num_total_products - len(res)
-        # cur.execute(f"SELECT * FROM most_popular_products ORDER BY RANDOM() LIMIT {num_real_products}")  # TODO: replace w products_for_display ?
-        # res.extend(cur.fetchall())
-
-        # # Return a randomly ordered list of both
-        # return random.shuffle(res)
-=======
         cur = conn.cursor()
         results = []
->>>>>>> main
 
         # num_total_products = request.args.get('num_total_products', 8)
         # num_ai_generated_products = request.args.get('num_ai_generated_products', 0) 
@@ -287,9 +156,6 @@ def initial_products():
 
 
 @app.route("/api/most_similar_products", methods=["GET"])
-<<<<<<< HEAD
-def get_recommendations_model_1():
-=======
 @track_metrics(service_metrics, 'GET', '/most_similar_products')
 def get_recommendations_model_1():
     """
@@ -357,7 +223,6 @@ def get_recommendations_model_1():
 @app.route("/api/recommend_products_sentiment_model", methods=["GET"])
 @track_metrics(service_metrics, 'GET', '/recommend_products_sentiment_model')
 def get_recommendations_model_2():
->>>>>>> main
     """
     API endpoint to retrieve the most similar products based on a given product ID.
     Accepts query parameters for the product ID, number of results, and whether to
@@ -372,39 +237,12 @@ def get_recommendations_model_2():
         - JSON response containing the most similar products or an error message.
     """
     try:
-<<<<<<< HEAD
-        print("MODEL 1")
-        # Extract query parameters
-        user_id = request.args.get('user_id', None)  # User ID required, but no default
-=======
         start_time = time.time()
         user_id = request.args.get('user_id', None)
->>>>>>> main
         if not user_id:
             service_metrics.track_recommendation_error('/recommend_products_sentiment_model', 'missing_user_id')
             return jsonify({"error": "Missing required parameter: user_id"}), 400
 
-<<<<<<< HEAD
-        # Prepare query parameters for the second container's API
-        # params = {
-        #     'user_id': user_id,
-        #     'num_recently_rated': num_recently_rated,
-        #     'num_recs_to_give': num_recs_to_give,
-        #     'by_title': by_title
-        # }
-
-        # Call the second container's API
-        # response = requests.get(MODEL_1_URL, params=params)
-        response = call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title)
-
-        # if response.status_code == 200:
-            # Return the success response from the second container's API
-        # return jsonify(response.json()), 200
-        return response
-        # else:
-        #     return jsonify({"error": "Failed to retrieve recommendations from model 1", "details": response.text}), 500
-        
-=======
         # Extract other parameters
         num_recently_rated = int(request.args.get('num_recently_rated', 8))
         num_recs_to_give = int(request.args.get('num_recs_to_give', 8))
@@ -433,7 +271,6 @@ def get_recommendations_model_2():
             service_metrics.track_recommendation_error('/recommend_products_sentiment_model', 'model_call_failure')
             return jsonify({"error": "Failed to retrieve recommendations from model 2", "details": response.text}), 500
 
->>>>>>> main
     except Exception as e:
         service_metrics.track_recommendation_error('/recommend_products_sentiment_model', 'unexpected_error')
         return jsonify({"error": "Failed to retrieve most similar products", "details": str(e)}), 500
@@ -710,11 +547,7 @@ def get_recommendations_model_4():
 Generate Fake Product
     - Will call the NLP Model to generate a fake product based on the user's ratings
 """
-<<<<<<< HEAD
-PRODUCT_GENERATOR_URL = "http://localhost:5007/generate_fake_product"  # Replace as needed
-=======
 PRODUCT_GENERATOR_URL = "http://generate_new_products:5007/generate_fake_product"  
->>>>>>> main
 @app.route("/api/generate_fake_product", methods=["GET"])
 @track_metrics(service_metrics, 'GET', '/generate_fake_product')
 def generate_fake_products():
@@ -736,22 +569,6 @@ def generate_fake_products():
         #     "num_products": num_products
         # }
 
-<<<<<<< HEAD
-        # Call the product generation API in the other container
-        # response = requests.post(PRODUCT_GENERATOR_URL, json=payload)
-        response = call_generate_products(user_id, num_products)
-
-        # Check if the request was successful
-        # if response.status_code == 200:
-        # return jsonify(response.json()), 200
-        return response
-        # else:
-            # Handle API errors from the first container
-            # return jsonify({
-            #     "error": "Failed to generate products from the generator service",
-            #     "details": response.json()
-            # }), response.status_code
-=======
         # Track external model call latency
         model_call_start_time = time.time()
         response = requests.get(PRODUCT_GENERATOR_URL, json=payload)
@@ -774,7 +591,6 @@ def generate_fake_products():
                 "error": "Failed to generate products from the generator service",
                 "details": response.json()
             }), response.status_code
->>>>>>> main
 
     except Exception as e:
         # Track unexpected errors

@@ -38,4 +38,4 @@ scrape_configs:
   # Additional frontend monitoring (Optional)
   - job_name: "frontend"
     static_configs:
-      - targets: ["frontend:4000"]
+      - targets: ["frontend:3000"]

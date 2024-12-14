@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model1
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: model1
+  template:
+    metadata:
+      labels:
+        app: model1
+    spec:
+      containers:
+        - name: toy-and-game-recommender-model-1-1
+          image: docker.io/library/toy_and_game_recommender-model_1:latest
+          ports:
+            - containerPort: 8080

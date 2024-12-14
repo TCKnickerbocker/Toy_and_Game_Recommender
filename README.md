@@ -42,3 +42,7 @@ So, add a .env file to the following:
 ### Put ALL Login info in .env, ensure is in gitignore
 
 
+
+
+### Dev Notes
+- Tommy frontend working with: RUN npm install --production --legacy-peer-deps

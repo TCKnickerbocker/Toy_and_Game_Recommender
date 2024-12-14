@@ -23,12 +23,11 @@ def call_generate_products(user_id=None, num_products=1, store_image_in_s3=False
     )
     return generated_products
 
-@app.route('/generate_fake_product', methods=['POST'])
+@app.route('/generate_fake_product', methods=['GET'])
 def generate_products():
-    # Get the parameters from the JSON body of the request
-    data = request.get_json()
-    user_id = data.get('user_id', None)
-    num_products = data.get('num_products', 1)
+    # Get the parameters from the request args or use defaults
+    user_id = request.args.get('user_id', None)
+    num_products = int(request.args.get('num_products', 1))
     print(f"Generating {num_products} new products...")
     
     # Call the generate function
@@ -38,7 +37,7 @@ def generate_products():
     return jsonify(generated_products), 200
 
 if __name__ == "__main__":
-    # app.run(debug=True, host="0.0.0.0", port=5007)
+    app.run(debug=True, host="0.0.0.0", port=5007)
     # call_generate_products(store_image_in_s3=True)
-    call_generate_products(store_image_in_s3=False)
+    # call_generate_products(store_image_in_s3=False)
     

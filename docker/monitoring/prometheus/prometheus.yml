@@ -2,25 +2,40 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-# scrape_configs:
-#   # Scrape metrics from each service
-#   - job_name: 'frontend'
-#     static_configs:
-#       - targets: ['frontend:9100']
-  
-#   - job_name: 'api-layer'
-#     static_configs:
-#       - targets: ['api-layer:9100']
 scrape_configs:
-  - job_name: 'model_1'
-    static_configs:
-      - targets: ['model_1:9100']  # debug: change to localhost:9100 ?
-  
-  - job_name: 'generate_new_products'
-    static_configs:
-      - targets: ['generate_new_products:9101']  
-
-  # Prometheus self-monitoring
+  # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9102']
+      - targets: ['localhost:9090']
+
+  # Node Exporter metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # API Service Metrics
+  - job_name: 'api-service'
+    static_configs:
+      - targets: ['api:9100']
+    metrics_path: '/metrics'
+
+  # Model Services Metrics
+  - job_name: 'model-services'
+    static_configs:
+      - targets: 
+        - 'model_1:9103'
+        - 'model_2:9104'
+        - 'model_3:9105'
+        - 'model_4:9106'
+    metrics_path: '/metrics'
+
+  # Generate Products Service Metrics
+  - job_name: 'generate-products-service'
+    static_configs:
+      - targets: ['generate_new_products:9107']
+    metrics_path: '/metrics'
+
+  # Additional frontend monitoring (Optional)
+  - job_name: 'frontend'
+    static_configs:
+      - targets: ['frontend:4000']

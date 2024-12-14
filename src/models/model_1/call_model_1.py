@@ -181,12 +181,12 @@ def most_similar_products():
             "details": str(e)
         }), 500
 
-def run_metrics_server(port=9100):
+def run_metrics_server(port=9103):
     """
     Start Prometheus metrics server on a specified port
     
     Args:
-        port (int): Port to expose metrics server. Defaults to 9100.
+        port (int): Port to expose metrics server. Defaults to 9103.
     """
     print(f"Starting model_1 prometheus metrics on port {port}")
     start_http_server(port)  # Metrics exposed on port
@@ -194,10 +194,10 @@ def run_metrics_server(port=9100):
 
 # Start metrics server & run app
 if __name__ == "__main__":
-    # Use environment variable for metrics port, default to 9100
-    metrics_port = int(os.getenv('METRICS_PORT', 9100))
+    # Use environment variable for metrics port, default to 9103
+    # metrics_port = int(os.getenv('METRICS_PORT', 9103))
     
-    metrics_thread = threading.Thread(target=run_metrics_server, kwargs={'port': metrics_port})
-    metrics_thread.start()
+    # metrics_thread = threading.Thread(target=run_metrics_server, kwargs={'port': metrics_port})
+    # metrics_thread.start()
     # call_model_1("dummyUser", 8, 8)
     app.run(debug=True, host="0.0.0.0", port=5003)

@@ -20,6 +20,7 @@ services:
       dockerfile: docker/api/Dockerfile
     networks:
       - app-network
+      - monitoring-network
     ports:
       - "8000:8000"
     depends_on:
@@ -28,6 +29,10 @@ services:
       - model_3
       - model_4
       - generate_new_products
+    environment:
+      - PROMETHEUS_MULTIPROC_DIR=/tmp
+    volumes:
+      - /tmp:/tmp
 
   model_1:
     build: 
@@ -35,6 +40,7 @@ services:
       dockerfile: docker/model_1/Dockerfile
     networks:
       - app-network
+      - monitoring-network
     ports:
       - "5003:5003"
       - "9103:9103" 
@@ -47,6 +53,7 @@ services:
       dockerfile: docker/model_2/Dockerfile
     networks:
       - app-network
+      - monitoring-network
     ports:
       - "5004:5004"
       - "9104:9104" 
@@ -59,6 +66,7 @@ services:
       dockerfile: docker/model_3/Dockerfile
     networks:
       - app-network
+      - monitoring-network
     ports:
       - "5005:5005"
       - "9105:9105" 
@@ -71,6 +79,7 @@ services:
       dockerfile: docker/model_4/Dockerfile
     networks:
       - app-network
+      - monitoring-network
     ports:
       - "5006:5006"
       - "9106:9106"
@@ -83,39 +92,65 @@ services:
       dockerfile: docker/generate_new_products/Dockerfile
     networks:
       - app-network
+      - monitoring-network
     ports:
       - "5007:5007"
-      - "9107:9101" 
+      - "9107:9107" 
     environment:
       - METRICS_PORT=9107
 
-  # prometheus:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/monitoring/prometheus/Dockerfile
-  #   ports:
-  #     - "9090:9090"
-  #     - "9100:9100"
-  #   volumes:
-  #     - ./docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-  #   command:
-  #     - '--web.listen-address=:9090'  # Ensure Prometheus listens on port 9090 for scraping
-  #     - '--web.external-url=http://localhost:9090'  # TODO: recall prometheus.com/9090
-  #     - '--web.enable-lifecycle'
+  # Prometheus Service
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: prometheus
+    networks:
+      - monitoring-network
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
 
-  # grafana:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/monitoring/grafana/Dockerfile
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - monitoring-network
-  #   depends_on:
-  #     - prometheus
-  #   volumes:
-  #     - ./docker/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
-  #     - ./docker/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+  # Node Exporter for host metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: node-exporter
+    networks:
+      - monitoring-network
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+
+  # Grafana Service
+  grafana:
+    image: grafana/grafana-oss:9.5.3
+    container_name: grafana
+    networks:
+      - monitoring-network
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
 
 networks:
   app-network:
@@ -123,6 +158,7 @@ networks:
   monitoring-network:
     driver: bridge
 
-
 volumes:
   frontend-node-modules:
+  prometheus-data:
+  grafana-data:

@@ -7,11 +7,11 @@ import logger
 import requests
 import sys
 import random
-from flask_cors import CORS
+# from flask_cors import CORS
 
 
 app = Flask(__name__)
-CORS(app)  # This will enable CORS for all routes
+# CORS(app)  # This will enable CORS for all routes
 app.secret_key = env.get("APP_SECRET_KEY")
 
 # Load trained models
@@ -21,6 +21,88 @@ app.secret_key = env.get("APP_SECRET_KEY")
 # spark = SparkSession.builder.appName("RecommendationAPI").getOrCreate()
 
 load_dotenv()
+
+
+
+
+
+from prometheus_client import start_http_server, Counter, Histogram, Gauge
+import time
+import threading
+
+# Global metrics registry
+class ServiceMetrics:
+    def __init__(self, service_name):
+        # Request counters
+        self.requests_total = Counter(
+            f'{service_name}_requests_total', 
+            'Total number of requests',
+            ['method', 'endpoint', 'status']
+        )
+        
+        # Request latency histogram
+        self.request_latency = Histogram(
+            f'{service_name}_request_latency_seconds', 
+            'Request latency in seconds',
+            ['method', 'endpoint']
+        )
+        
+        # Active connections gauge
+        self.active_connections = Gauge(
+            f'{service_name}_active_connections', 
+            'Number of active connections'
+        )
+    
+    def track_request(self, method, endpoint, status):
+        self.requests_total.labels(method, endpoint, status).inc()
+    
+    def observe_latency(self, method, endpoint, latency):
+        self.request_latency.labels(method, endpoint).observe(latency)
+
+# Metrics server
+def start_metrics_server(port=9100):
+    """Start a metrics server on the specified port"""
+    start_http_server(port)
+
+# Decorator for tracking metrics
+def track_metrics(service_metrics, method, endpoint):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            try:
+                result = func(*args, **kwargs)
+                latency = time.time() - start_time
+                service_metrics.track_request(method, endpoint, 'success')
+                service_metrics.observe_latency(method, endpoint, latency)
+                return result
+            except Exception as e:
+                latency = time.time() - start_time
+                service_metrics.track_request(method, endpoint, 'error')
+                service_metrics.observe_latency(method, endpoint, latency)
+                raise
+        return wrapper
+    return decorator
+
+# Example usage in a Flask app
+from flask import Flask
+app = Flask(__name__)
+
+# Initialize metrics for this service
+service_metrics = ServiceMetrics('my_service')
+
+# Start metrics server in a separate thread
+metrics_thread = threading.Thread(target=start_metrics_server)
+metrics_thread.daemon = True
+metrics_thread.start()
+
+
+
+
+
+
+
+
+
 
 def setup_connection():
     try:
@@ -185,6 +267,7 @@ Get Initial N Products
     - Could be the N most popular products or N random products
 """
 @app.route("/api/initial_products", methods=["GET"])
+@track_metrics(service_metrics, 'GET', '/example')
 def initial_products():
     try:
         conn = setup_connection()

@@ -6,7 +6,11 @@ import model_1_alg
 from model_1_configs import CONNECTION_PARAMS
 
 # Prometheus monitoring
+<<<<<<< HEAD
 # from prometheus_client import Counter, Histogram, start_http_server
+=======
+from prometheus_client import Counter, Histogram, start_http_server
+>>>>>>> main
 import time
 import logging
 import concurrent.futures
@@ -15,6 +19,7 @@ import os
 
 app = Flask(__name__)
 
+<<<<<<< HEAD
 # # Prometheus Metrics
 # RECOMMENDATIONS_TOTAL = Counter(
 #     'recommendations_total', 
@@ -31,6 +36,24 @@ app = Flask(__name__)
 #     'Total number of recommendation errors',
 #     ['method', 'endpoint', 'error_type']
 # )
+=======
+# Prometheus Metrics
+RECOMMENDATIONS_TOTAL = Counter(
+    'recommendations_total', 
+    'Total number of recommendation requests',
+    ['method', 'endpoint']
+)
+RECOMMENDATION_LATENCY = Histogram(
+    'recommendation_latency_seconds', 
+    'Time spent generating recommendations',
+    ['method', 'endpoint']
+)
+RECOMMENDATION_ERRORS = Counter(
+    'recommendation_errors_total', 
+    'Total number of recommendation errors',
+    ['method', 'endpoint', 'error_type']
+)
+>>>>>>> main
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -49,11 +72,19 @@ def get_db_connection():
         return conn
     except DatabaseError as e:
         logger.error(f"Database connection error: {e}")
+<<<<<<< HEAD
         # RECOMMENDATION_ERRORS.labels(
         #     method='GET', 
         #     endpoint='/most_similar_products', 
         #     error_type='db_connection'
         # ).inc()
+=======
+        RECOMMENDATION_ERRORS.labels(
+            method='GET', 
+            endpoint='/most_similar_products', 
+            error_type='db_connection'
+        ).inc()
+>>>>>>> main
         raise
 
 def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False): 
@@ -130,6 +161,7 @@ def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False):
     
     except Exception as e:
         print(f"Error in call_model_1: {e}")
+<<<<<<< HEAD
         # RECOMMENDATION_ERRORS.labels(
         #     method='GET', 
         #     endpoint='/most_similar_products', 
@@ -143,6 +175,21 @@ def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False):
         #     method='GET', 
         #     endpoint='/most_similar_products'
         # ).observe(latency)
+=======
+        RECOMMENDATION_ERRORS.labels(
+            method='GET', 
+            endpoint='/most_similar_products', 
+            error_type='recommendation_generation'
+        ).inc()
+        raise
+    finally:
+        # Record latency
+        latency = time.time() - start_time
+        RECOMMENDATION_LATENCY.labels(
+            method='GET', 
+            endpoint='/most_similar_products'
+        ).observe(latency)
+>>>>>>> main
 
 @app.route("/most_similar_products", methods=["GET"])
 def most_similar_products():
@@ -151,10 +198,17 @@ def most_similar_products():
     Enhanced with metrics and improved error handling.
     """
     # Increment total recommendations counter
+<<<<<<< HEAD
     # RECOMMENDATIONS_TOTAL.labels(
     #     method='GET', 
     #     endpoint='/most_similar_products'
     # ).inc()
+=======
+    RECOMMENDATIONS_TOTAL.labels(
+        method='GET', 
+        endpoint='/most_similar_products'
+    ).inc()
+>>>>>>> main
 
     try:
         # Extract query parameters
@@ -181,12 +235,20 @@ def most_similar_products():
             "details": str(e)
         }), 500
 
+<<<<<<< HEAD
 def run_metrics_server(port=9100):
+=======
+def run_metrics_server(port=9103):
+>>>>>>> main
     """
     Start Prometheus metrics server on a specified port
     
     Args:
+<<<<<<< HEAD
         port (int): Port to expose metrics server. Defaults to 9100.
+=======
+        port (int): Port to expose metrics server. Defaults to 9103.
+>>>>>>> main
     """
     print(f"Starting model_1 prometheus metrics on port {port}")
     start_http_server(port)  # Metrics exposed on port
@@ -194,10 +256,19 @@ def run_metrics_server(port=9100):
 
 # Start metrics server & run app
 if __name__ == "__main__":
+<<<<<<< HEAD
     # Use environment variable for metrics port, default to 9100
     metrics_port = int(os.getenv('METRICS_PORT', 9100))
     
     metrics_thread = threading.Thread(target=run_metrics_server, kwargs={'port': metrics_port})
     metrics_thread.start()
     # call_model_1("dummyUser", 3, 4)
+=======
+    # Use environment variable for metrics port, default to 9103
+    # metrics_port = int(os.getenv('METRICS_PORT', 9103))
+    
+    # metrics_thread = threading.Thread(target=run_metrics_server, kwargs={'port': metrics_port})
+    # metrics_thread.start()
+    # call_model_1("dummyUser", 8, 8)
+>>>>>>> main
     app.run(debug=True, host="0.0.0.0", port=5003)

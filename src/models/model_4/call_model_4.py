@@ -108,7 +108,7 @@ def call_model_4(user_id, num_recently_rated, num_recs_to_give, by_title=False):
         print(f"Error in call_model_4: {e}")
         raise
 
-@app.route("/recommend_products_llm_model", methods=["GET"])
+@app.route("/recommend_products_similarity_oyt_llm_combined_model", methods=["GET"])
 def most_similar_products():
     """
     API endpoint to retrieve the most similar products.

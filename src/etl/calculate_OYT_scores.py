@@ -29,7 +29,7 @@ def calculate_OYT_for_product(product_id: str, review_sentiments: list, nums_fou
     Args:
         product_id (str): Unique identifier for the product
         review_sentiments (list): List of sentiment scores for reviews
-        nums_found_helpful (list): List of helpful votes for reviews
+        nums_found_helpful (list): List of number of helpful votes for corresponding reviews
         number_of_reviews_for_product (int): Total number of reviews for the product
         base_weight (float): Baseline helpfulness weight for reviews with zero helpful votes
     

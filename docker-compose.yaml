@@ -1,162 +1,166 @@
-version: "2.31.0"
-
 services:
-  #   frontend:
-  #     build:
-  #       context: .
-  #       dockerfile: docker/frontend/Dockerfile
-  #     ports:
-  #       - "3000:3000"
-  #     networks:
-  #       - app-network
-  #     depends_on:
-  #       - api
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    ports:
+      - "4000:4000"
+    networks:
+      - app-network
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_PATH=/app/node_modules
+    volumes:
+      - ./src/frontend:/app
+      - frontend-node-modules:/app/node_modules
 
   api:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
-    ports:
-      - "8000:8000"
     networks:
       - app-network
+      - monitoring-network
+    ports:
+      - "8000:8000"
+      - "9102:9102"
     depends_on:
       - model_1
-      - generate_new_products
       - model_2
       - model_3
       - model_4
+      - generate_new_products
     environment:
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
-      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
-      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
-      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
-      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
-      - APP_SECRET_KEY=${APP_SECRET_KEY}
+      - PROMETHEUS_MULTIPROC_DIR=/tmp
+    volumes:
+      - /tmp:/tmp
 
   model_1:
     build:
       context: .
       dockerfile: docker/model_1/Dockerfile
+    networks:
+      - app-network
+      - monitoring-network
     ports:
       - "5003:5003"
-      - "9100:9100"
+      - "9103:9103"
     environment:
-      - METRICS_PORT=9100
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
-      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
-      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
-      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
-      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
-      - APP_SECRET_KEY=${APP_SECRET_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-
-  generate_new_products:
-    build:
-      context: .
-      dockerfile: docker/generate_new_products/Dockerfile
-    ports:
-      - "5007:5007"
-      - "9101:9101"
-    environment:
-      - METRICS_PORT=9101
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
-      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
-      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
-      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
-      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - METRICS_PORT=9103
 
   model_2:
     build:
       context: .
       dockerfile: docker/model_2/Dockerfile
+    networks:
+      - app-network
+      - monitoring-network
     ports:
       - "5004:5004"
-      - "9102:9102"
+      - "9104:9104"
     environment:
-      - METRICS_PORT=9102
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
-      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
-      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
-      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
-      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - METRICS_PORT=9104
 
   model_3:
     build:
       context: .
       dockerfile: docker/model_3/Dockerfile
+    networks:
+      - app-network
+      - monitoring-network
     ports:
       - "5005:5005"
-      - "9103:9103"
+      - "9105:9105"
     environment:
-      - METRICS_PORT=9103
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
-      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
-      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
-      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
-      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - METRICS_PORT=9105
 
   model_4:
     build:
       context: .
       dockerfile: docker/model_4/Dockerfile
+    networks:
+      - app-network
+      - monitoring-network
     ports:
       - "5006:5006"
-      - "9104:9104"
+      - "9106:9106"
     environment:
-      - METRICS_PORT=9104
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
-      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
-      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE}
-      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
-      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - METRICS_PORT=9106
 
-  prometheus:
+  generate_new_products:
     build:
       context: .
-      dockerfile: docker/monitoring/prometheus/Dockerfile
+      dockerfile: docker/generate_new_products/Dockerfile
+    networks:
+      - app-network
+      - monitoring-network
+    ports:
+      - "5007:5007"
+      - "9107:9107"
+    environment:
+      - METRICS_PORT=9107
+
+  # Prometheus Service
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    networks:
+      - monitoring-network
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+
+  # Node Exporter for host metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    networks:
+      - monitoring-network
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
+
+  # Grafana Service
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    networks:
+      - monitoring-network
     ports:
       - "9090:9090"
       - "9091:9091"
     volumes:
-      - ./docker/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - "--web.listen-address=:9090" # Ensure Prometheus listens on port 9090 for scraping
-      - "--web.external-url=http://localhost:9090"
-      - "--web.enable-lifecycle"
-  # grafana:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/monitoring/grafana/Dockerfile
-  #   ports:
-  #     - "3001:3000"
-  #   networks:
-  #     - monitoring-network
-  #   depends_on:
-  #     - prometheus
-  #   volumes:
-  #     - ./docker/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
-  #     - ./docker/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana-data:/var/lib/grafana
+      - ./docker/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
 
 networks:
   app-network:
     driver: bridge
   monitoring-network:
     driver: bridge
+
+volumes:
+  frontend-node-modules:
+  prometheus-data:
+  grafana-data:

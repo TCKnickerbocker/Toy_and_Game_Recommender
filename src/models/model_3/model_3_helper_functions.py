@@ -23,14 +23,25 @@ def rank_products_with_llm(
     - List of ranked and pruned product IDs
     """
     # Prepare the prompt for the LLM
-    prompt = "Rank these products for recommendation based on their similarity and relevance to the original product. "
-    if original_product_title:
-        prompt += f"The original product is: '{original_product_title}'. "
-    
-    prompt += "Provide a ranked list of product IDs, with the 'best' product IDs being listed first. " \
-              "Consider factors like semantic similarity, potential user interest, and product characteristics. " \
-              "Our goal is to recommend the products with these product IDs to a user that liked the original product. " \
-              "Format your response as a comma-separated list of product IDs in order of relevance.\n\n"
+    prompt = (
+        "Rank these products for recommendation based on their similarity, relevance, and potential user interest. "
+        f"The original product is: '{original_product_title}'. "
+        
+        "Provide a comprehensive evaluation and ranked list of product IDs, with the most promising recommendations listed first. "
+        "In your ranking, systematically consider the following critical factors:\n"
+        "- Semantic similarity to the original product\n"
+        "- Potential alignment with user preferences\n"
+        "- Nuanced product characteristics and attributes\n\n"
+        
+        "Methodology for ranking:\n"
+        "1. Calculate a composite score that integrates:\n"
+        "   a) Semantic similarity weight\n"
+        "   b) Product characteristic compatibility\n"
+        "2. Rank products based on this comprehensive score\n\n"
+        
+        "The objective is to generate a curated list of product recommendations that a user who appreciated the original product would find compelling. "
+        "Format your response as a precise, comma-separated list of product IDs, ordered from most to least recommended.\n\n"
+    )
     
     # Prepare product information for the prompt
     product_details = "\n".join([

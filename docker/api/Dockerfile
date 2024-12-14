@@ -22,7 +22,7 @@ ENV FLASK_APP=index.py
 # Expose the port Flask will run on
 EXPOSE 8000
 
-CMD ["python3", "index.py"]
+CMD ["flask", "run", "--host=0.0.0.0", "--port=8000"]
 
 # docker build -t api .
 # docker run -p 8000:8000 api

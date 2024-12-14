@@ -23,20 +23,28 @@ def rank_products_with_llm(
     - List of ranked and pruned product IDs
     """
     # Prepare the prompt for the LLM
-    prompt = "Rank these products for recommendation based on their similarity, relevance, and potential novelty to the original product. "
-    if original_product_title:
-        prompt += f"The original product is: '{original_product_title}'. "
-    
-    prompt += "Provide a ranked list of product IDs, with the 'best' product IDs being listed first. " \
-              "Consider multiple factors:\n" \
-              "- Semantic similarity to the original product\n" \
-              "- Potential user interest\n" \
-              "- Product characteristics\n" \
-              "- The 'OYT' score, which represents the overall sentiment of reviews for a given product (with higher scores indicating a generally more positively-reviewed product)\n" \
-              "- Combined score of similarity and oyt score\n\n" \
-              "Our goal is to recommend the products with these product IDs to a user that liked the original product. " \
-              "Format your response as a comma-separated list of product IDs in order of relevance.\n\n"
-    
+    prompt = (
+        "Rank these products for recommendation based on their similarity, relevance, and potential user interest. "
+        f"The original product is: '{original_product_title}'. "
+        
+        "Provide a comprehensive evaluation and ranked list of product IDs, with the most promising recommendations listed first. "
+        "In your ranking, systematically consider the following critical factors:\n"
+        "- Semantic similarity to the original product\n"
+        "- Potential alignment with user preferences\n"
+        "- Nuanced product characteristics and attributes\n"
+        "- OYT score (overall review sentiment), which provides insight into product satisfaction\n\n"
+        
+        "Methodology for ranking:\n"
+        "1. Calculate a composite score that integrates:\n"
+        "   a) Semantic similarity weight\n"
+        "   b) OYT score weight\n"
+        "   c) Product characteristic compatibility\n"
+        "2. Rank products based on this comprehensive composite score\n\n"
+        
+        "The objective is to generate a curated list of product recommendations that a user who appreciated the original product would find compelling. "
+        "Format your response as a precise, comma-separated list of product IDs, ordered from most to least recommended.\n\n"
+    )
+
     # Prepare product information for the prompt
     product_details = "\n".join([
         f"Product ID: {prod[0]}, Title: {prod[2]}, " \

@@ -5,7 +5,7 @@ Prometheus Queries
 promqlCopy# Total recommendations generated per endpoint
 sum(api_metrics_recommendations_generated_total{endpoint="/initial_products"})
 sum(api_metrics_recommendations_generated_total{endpoint="/most_similar_products"})
-# ^^NOTE: Can replace endpoint with any of the other models (1-4) i.e. endpoint="/recommend_products_sentiment_model"
+# ^^NOTE: Can replace endpoint with any of the other models (1-4) i.e. endpoint="/call_model_2"
 
 # Recommendation generation rate per minute
 rate(api_metrics_recommendations_generated_total{endpoint="/most_similar_products"}[5m])

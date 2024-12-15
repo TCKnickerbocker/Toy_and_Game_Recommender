@@ -19,9 +19,9 @@ app.secret_key = os.environ.get("APP_SECRET_KEY")
 service_metrics = ServiceMetrics('api_metrics')
 
 # Start metrics server in a separate thread
-metrics_thread = threading.Thread(target=start_metrics_server)
-metrics_thread.daemon = True
-metrics_thread.start()
+# metrics_thread = threading.Thread(target=start_metrics_server)
+# metrics_thread.daemon = True
+# metrics_thread.start()
 # i.e. prom query: api_metrics_requests_total
 ### NOTE: we currently have one function being tracked via @track_metrics(service_metrics, 'GET', '/example')
 
@@ -67,23 +67,32 @@ def create_user():
 def insert_user_reviews():
     data = request.json
 
-    user_id = data['user_id']
-    product_id = data['product_id']
-    rating = data['rating']
-    favorite = data['favorite']
+    values = []
 
-    if check_rating_exists(user_id, product_id) is True:
-        print("ISSUE: User rating already exists for this product")
-        return {"message": "User rating already exists for this product"}, 400
+    for review in data:
+        user_id = review['user_id']
+        product_id = review['product_id']
+        rating = review['rating']
+        favorite = review['favorite']
+
+        if check_rating_exists(user_id, product_id) is True:
+            print("ISSUE: User rating already exists for this product")
+            return {"message": "User rating already exists for this product"}, 400
+
+        # check_user_rating_threshold(user_id)
+        values.append((user_id, product_id, rating, favorite))
 
     try:
         conn = setup_connection()
 
         cur = conn.cursor()
 
-        check_user_rating_threshold(user_id)
+        insert_query = """
+            INSERT INTO user_ratings (user_id, parent_asin, rating, favorite) 
+            VALUES (%s, %s, %s, %s)
+        """
 
-        cur.execute("INSERT INTO user_ratings (user_id, parent_asin, rating, favorite) VALUES (%s, %s, %s, %s)", (user_id, product_id, rating, favorite))
+        cur.executemany(insert_query, values)
 
         conn.commit()
     except snowflake.connector.Error as e:
@@ -101,7 +110,7 @@ Get Initial N Products
     - Could be the N most popular products or N random products
 """
 @app.route("/api/initial_products", methods=["GET"])
-@track_metrics(service_metrics, 'GET', '/initial_products')
+# @track_metrics(service_metrics, 'GET', '/initial_products')
 def initial_products():
     start_time = time.time()
     try:
@@ -156,7 +165,7 @@ def initial_products():
 
 
 @app.route("/api/most_similar_products", methods=["GET"])
-@track_metrics(service_metrics, 'GET', '/most_similar_products')
+# @track_metrics(service_metrics, 'GET', '/most_similar_products')
 def get_recommendations_model_1():
     """
     API endpoint to retrieve the most similar products based on a given product ID.
@@ -175,9 +184,9 @@ def get_recommendations_model_1():
     try:
         # Extract query parameters
         user_id = request.args.get('user_id', None)
-        if not user_id:
-            service_metrics.track_recommendation_error('/most_similar_products', 'missing_user_id')
-            return jsonify({"error": "Missing required parameter: user_id"}), 400
+        # if not user_id:
+        #     service_metrics.track_recommendation_error('/most_similar_products', 'missing_user_id')
+        #     return jsonify({"error": "Missing required parameter: user_id"}), 400
         
         # Prepare parameters for external model call
         params = {
@@ -221,7 +230,7 @@ def get_recommendations_model_1():
 
 
 @app.route("/api/recommend_products_sentiment_model", methods=["GET"])
-@track_metrics(service_metrics, 'GET', '/recommend_products_sentiment_model')
+# @track_metrics(service_metrics, 'GET', '/recommend_products_sentiment_model')
 def get_recommendations_model_2():
     """
     API endpoint to retrieve the most similar products based on a given product ID.
@@ -239,9 +248,9 @@ def get_recommendations_model_2():
     try:
         start_time = time.time()
         user_id = request.args.get('user_id', None)
-        if not user_id:
-            service_metrics.track_recommendation_error('/recommend_products_sentiment_model', 'missing_user_id')
-            return jsonify({"error": "Missing required parameter: user_id"}), 400
+        # if not user_id:
+        #     service_metrics.track_recommendation_error('/recommend_products_sentiment_model', 'missing_user_id')
+        #     return jsonify({"error": "Missing required parameter: user_id"}), 400
 
         # Extract other parameters
         num_recently_rated = int(request.args.get('num_recently_rated', 8))
@@ -277,7 +286,7 @@ def get_recommendations_model_2():
 
 
 @app.route("/api/recommend_products_llm_model", methods=["GET"])
-@track_metrics(service_metrics, 'GET', '/recommend_products_llm_model')
+# @track_metrics(service_metrics, 'GET', '/recommend_products_llm_model')
 def get_recommendations_model_3():
     """
     API endpoint to retrieve the most similar products based on a given product ID.
@@ -295,9 +304,9 @@ def get_recommendations_model_3():
     try:
         start_time = time.time()
         user_id = request.args.get('user_id', None)
-        if not user_id:
-            service_metrics.track_recommendation_error('/recommend_products_llm_model', 'missing_user_id')
-            return jsonify({"error": "Missing required parameter: user_id"}), 400
+        # if not user_id:
+        #     service_metrics.track_recommendation_error('/recommend_products_llm_model', 'missing_user_id')
+        #     return jsonify({"error": "Missing required parameter: user_id"}), 400
 
         # Extract other parameters
         num_recently_rated = int(request.args.get('num_recently_rated', 8))
@@ -333,7 +342,7 @@ def get_recommendations_model_3():
 
 
 @app.route("/api/recommend_products_similarity_oyt_llm_combined_model", methods=["GET"])
-@track_metrics(service_metrics, 'GET', '/recommend_products_similarity_oyt_llm_combined_model')
+# @track_metrics(service_metrics, 'GET', '/recommend_products_similarity_oyt_llm_combined_model')
 def get_recommendations_model_4():
     """
     API endpoint to retrieve the most similar products based on a given product ID.
@@ -351,9 +360,9 @@ def get_recommendations_model_4():
     try:
         start_time = time.time()
         user_id = request.args.get('user_id', None)
-        if not user_id:
-            service_metrics.track_recommendation_error('/recommend_products_similarity_oyt_llm_combined_model', 'missing_user_id')
-            return jsonify({"error": "Missing required parameter: user_id"}), 400
+        # if not user_id:
+        #     service_metrics.track_recommendation_error('/recommend_products_similarity_oyt_llm_combined_model', 'missing_user_id')
+        #     return jsonify({"error": "Missing required parameter: user_id"}), 400
 
         # Extract other parameters
         num_recently_rated = int(request.args.get('num_recently_rated', 8))
@@ -393,7 +402,7 @@ Generate Fake Product
 """
 PRODUCT_GENERATOR_URL = "http://generate_new_products:5007/generate_fake_product"  
 @app.route("/api/generate_fake_product", methods=["GET"])
-@track_metrics(service_metrics, 'GET', '/generate_fake_product')
+# @track_metrics(service_metrics, 'GET', '/generate_fake_product')
 def generate_fake_products():
     try:
         start_time = time.time()
@@ -449,4 +458,3 @@ def generate_fake_products():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
-

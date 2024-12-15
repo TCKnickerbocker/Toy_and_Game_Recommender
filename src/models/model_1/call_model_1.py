@@ -31,6 +31,11 @@ RECOMMENDATION_ERRORS = Counter(
     'Total number of recommendation errors',
     ['method', 'endpoint', 'error_type']
 )
+FUNCTION_LATENCY = Histogram(
+    'function_latency_seconds', 
+    'Time spent in specific functions',
+    ['function_name']
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -60,73 +65,67 @@ def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False):
     """
     Retrieve a list of the most similar product IDs based on description or title.
     
-    Includes performance tracking, error handling, and multithreading.
+    Includes performance tracking, error handling, and multithreading with Prometheus metrics.
     """
     start_time = time.time()
     
     try:
-        # Use context manager for connection
-        with get_db_connection() as conn:
-            # Determine number of worker threads based on available CPU cores
-            max_workers = min(os.cpu_count(), num_recently_rated)
-            end_time0 = time.time()
-            print(f"Getting connection and max_workers: {end_time0 - start_time:.2f} seconds")
-            
-            most_similar_products = {}
+        # Use Prometheus histogram for timing get_db_connection
+        with FUNCTION_LATENCY.labels(function_name='get_db_connection').time():
+            with get_db_connection() as conn:
+                # Determine number of worker threads based on available CPU cores
+                max_workers = min(os.cpu_count(), num_recently_rated)
+        
+        # Track time for getting recently rated products
+        with FUNCTION_LATENCY.labels(function_name='get_recently_rated_products_info').time():
             recently_rated_products = model_1_helper_functions.get_recently_rated_products_info(
                 conn, user_id, num_recently_rated
             )
-            end_time1 = time.time()
-            print(f"Getting recently rated took: {end_time1 - end_time0:.2f} seconds")
+        
+        # Multithreaded processing of recently rated products
+        most_similar_products = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Create a dictionary to store futures
+            future_to_product = {}
             
-            # Multithreaded processing of recently rated products
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # Create a dictionary to store futures
-                future_to_product = {}
-                
-                # Submit tasks for each recently rated product
-                for rating_info in recently_rated_products:
-                    product_id = rating_info[0]
-                    # Submit the similarity lookup as a task
-                    future = executor.submit(
-                        model_1_helper_functions.get_n_most_similar_product_ids_model_1, 
-                        conn, 
-                        product_id, 
-                        n=num_recs_to_give, 
-                        similarity_tablename='product_title_similarity' if by_title else 'product_description_similarity', 
-                        user_id=user_id
-                    )
-                    future_to_product[future] = (product_id, rating_info)
-                
-                # Collect results as they complete
-                for future in concurrent.futures.as_completed(future_to_product):
-                    product_id, rating_info = future_to_product[future]
-                    try:
-                        similar_product_ids = future.result()
-                        most_similar_products[product_id] = [
-                            rating_info[1], rating_info[2], similar_product_ids
-                        ]
-                    except Exception as exc:
-                        print(f'Product {product_id} generated an exception: {exc}')
-            end_time2 = time.time()
-            print(f"get_n_most_similar_product_ids_model_1 for {num_recently_rated} products took: {end_time2 - end_time1:.2f} seconds")
+            # Submit tasks for each recently rated product
+            for rating_info in recently_rated_products:
+                product_id = rating_info[0]
+                # Track time for individual similarity lookups
+                future = executor.submit(
+                    FUNCTION_LATENCY.labels(function_name='get_n_most_similar_product_ids_model_1').time()(
+                        model_1_helper_functions.get_n_most_similar_product_ids_model_1
+                    ), 
+                    conn, 
+                    product_id, 
+                    n=num_recs_to_give, 
+                    similarity_tablename='product_title_similarity' if by_title else 'product_description_similarity', 
+                    user_id=user_id
+                )
+                future_to_product[future] = (product_id, rating_info)
             
-            # Get products to recommend 
+            # Collect results as they complete
+            for future in concurrent.futures.as_completed(future_to_product):
+                product_id, rating_info = future_to_product[future]
+                try:
+                    similar_product_ids = future.result()
+                    most_similar_products[product_id] = [
+                        rating_info[1], rating_info[2], similar_product_ids
+                    ]
+                except Exception as exc:
+                    print(f'Product {product_id} generated an exception: {exc}')
+        
+        # Track time for recommendation algorithm
+        with FUNCTION_LATENCY.labels(function_name='recommend_products').time():
             product_ids_to_rec = model_1_alg.recommend_products(
                 most_similar_products, num_recs_to_give
             )
-            
-            # Performance tracking
-            end_time3 = time.time()
-            print(f"recommend_products took: {end_time3 - end_time2:.2f} seconds")
-            
+        
+        # Track time for fetching product details
+        with FUNCTION_LATENCY.labels(function_name='get_products_by_product_ids').time():
             x = model_1_helper_functions.get_products_by_product_ids(conn, product_ids_to_rec)
-            end_time4 = time.time()
-            print(f"get_products_by_product_ids took: {end_time4 - end_time3:.2f} seconds")
-            
-            end_time5 = time.time()
-            print(f"Total time for {num_recs_to_give} products with {num_recently_rated} recent ratings: {end_time5 - start_time:.2f} seconds")
-            return x
+        
+        return x
     
     except Exception as e:
         print(f"Error in call_model_1: {e}")
@@ -137,7 +136,7 @@ def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False):
         ).inc()
         raise
     finally:
-        # Record latency
+        # Record total latency
         latency = time.time() - start_time
         RECOMMENDATION_LATENCY.labels(
             method='GET', 

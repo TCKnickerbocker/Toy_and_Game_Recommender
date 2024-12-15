@@ -58,7 +58,7 @@ export default function RecommendationsPage() {
   const [items, setItems] = useState<RateItemProps[]>([]);
   const [refreshesLeft, setRefreshesLeft] = useState(3);
   const [model, setModel] = useState("Model 1");
-  const [modelEndpoint, setModelEndpoint] = useState("most_similar_products");
+  const [modelEndpoint, setModelEndpoint] = useState("call_model_1");
 
   // TODO: STILL RENDERS AS NOTHING ON RELOAD
   const [userId, setUserId] = useState("");
@@ -232,17 +232,17 @@ export default function RecommendationsPage() {
     const modelType = event.target.value;
     setModel(event.target.value);
     if (modelType == "Model 1") {
-      console.log("most_similar_products");
-      setModelEndpoint("most_similar_products");
+      console.log("call_model_1");
+      setModelEndpoint("call_model_1");
     } else if (modelType == "Model 2") {
-      console.log("recommend_products_sentiment_model");
-      setModelEndpoint("recommend_products_sentiment_model");
+      console.log("call_model_2");
+      setModelEndpoint("call_model_2");
     } else if (modelType == "Model 3") {
-      console.log("recommend_products_llm_model");
-      setModelEndpoint("recommend_products_llm_model");
+      console.log("call_model_3");
+      setModelEndpoint("call_model_3");
     } else {
-      console.log("recommend_products_similarity_oyt_llm_combined_model");
-      setModelEndpoint("recommend_products_similarity_oyt_llm_combined_model");
+      console.log("call_model_4");
+      setModelEndpoint("call_model_4");
     }
   };
 

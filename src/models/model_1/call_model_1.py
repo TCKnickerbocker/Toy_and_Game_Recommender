@@ -5,8 +5,6 @@ import model_1_helper_functions
 import model_1_alg
 from model_1_configs import CONNECTION_PARAMS
 
-# Prometheus monitoring
-from prometheus_client import Counter, Histogram, start_http_server
 import time
 import logging
 import concurrent.futures
@@ -15,37 +13,17 @@ import os
 
 app = Flask(__name__)
 
-# Prometheus Metrics
-RECOMMENDATIONS_TOTAL = Counter(
-    'recommendations_total', 
-    'Total number of recommendation requests',
-    ['method', 'endpoint']
-)
-RECOMMENDATION_LATENCY = Histogram(
-    'recommendation_latency_seconds', 
-    'Time spent generating recommendations',
-    ['method', 'endpoint']
-)
-RECOMMENDATION_ERRORS = Counter(
-    'recommendation_errors_total', 
-    'Total number of recommendation errors',
-    ['method', 'endpoint', 'error_type']
-)
-FUNCTION_LATENCY = Histogram(
-    'function_latency_seconds', 
-    'Time spent in specific functions',
-    ['function_name']
-)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+print("Flask app started for model 1")
 
 def get_db_connection():
     """
     Create a database connection with proper error handling.
-    
+
     Returns:
         snowflake.connector.connection.SnowflakeConnection: Database connection
     """
@@ -54,107 +32,85 @@ def get_db_connection():
         return conn
     except DatabaseError as e:
         logger.error(f"Database connection error: {e}")
-        RECOMMENDATION_ERRORS.labels(
-            method='GET', 
-            endpoint='/most_similar_products', 
-            error_type='db_connection'
-        ).inc()
         raise
 
 def call_model_1(user_id, num_recently_rated, num_recs_to_give, by_title=False): 
     """
     Retrieve a list of the most similar product IDs based on description or title.
     
-    Includes performance tracking, error handling, and multithreading with Prometheus metrics.
+    Includes performance tracking, error handling, and multithreading.
     """
     start_time = time.time()
-    
+    print("Model 1 params are: ", user_id, num_recently_rated, num_recs_to_give)
     try:
-        # Use Prometheus histogram for timing get_db_connection
-        with FUNCTION_LATENCY.labels(function_name='get_db_connection').time():
-            with get_db_connection() as conn:
-                # Determine number of worker threads based on available CPU cores
-                max_workers = min(os.cpu_count(), num_recently_rated)
-        
-        # Track time for getting recently rated products
-        with FUNCTION_LATENCY.labels(function_name='get_recently_rated_products_info').time():
-            recently_rated_products = model_1_helper_functions.get_recently_rated_products_info(
-                conn, user_id, num_recently_rated
-            )
-        
-        # Multithreaded processing of recently rated products
-        most_similar_products = {}
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Create a dictionary to store futures
-            future_to_product = {}
-            
-            # Submit tasks for each recently rated product
-            for rating_info in recently_rated_products:
-                product_id = rating_info[0]
-                # Track time for individual similarity lookups
-                future = executor.submit(
-                    FUNCTION_LATENCY.labels(function_name='get_n_most_similar_product_ids_model_1').time()(
-                        model_1_helper_functions.get_n_most_similar_product_ids_model_1
-                    ), 
-                    conn, 
-                    product_id, 
-                    n=num_recs_to_give, 
-                    similarity_tablename='product_title_similarity' if by_title else 'product_description_similarity', 
-                    user_id=user_id
-                )
-                future_to_product[future] = (product_id, rating_info)
-            
-            # Collect results as they complete
-            for future in concurrent.futures.as_completed(future_to_product):
-                product_id, rating_info = future_to_product[future]
-                try:
-                    similar_product_ids = future.result()
-                    most_similar_products[product_id] = [
-                        rating_info[1], rating_info[2], similar_product_ids
-                    ]
-                except Exception as exc:
-                    print(f'Product {product_id} generated an exception: {exc}')
-        
-        # Track time for recommendation algorithm
-        with FUNCTION_LATENCY.labels(function_name='recommend_products').time():
+        print("trying in model 1")
+        # Use function for getting database connection
+        with get_db_connection() as conn:
+            # Determine number of worker threads based on available CPU cores
+            max_workers = min(os.cpu_count(), num_recently_rated)
+            print("Conn in model_1: ", conn)
+            print(num_recently_rated)
+            print(type(num_recently_rated))
+            print(user_id)
+            print(type(user_id))
+            # Track time for getting recently rated products
+            # recently_rated_products = model_1_helper_functions.get_recently_rated_products_info(
+            #     conn, user_id, num_recently_rated
+            # )
+            recently_rated_products = model_1_helper_functions.get_recently_rated_products_info(conn, 'dummyUser', 8) 
+            print("got recently rated product info in model 1")
+            # Multithreaded processing of recently rated products
+            most_similar_products = {}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Create a dictionary to store futures
+                future_to_product = {}
+                
+                # Submit tasks for each recently rated product
+                for rating_info in recently_rated_products:
+                    product_id = rating_info[0]
+                    future = executor.submit(
+                        model_1_helper_functions.get_n_most_similar_product_ids_model_1, 
+                        conn, 
+                        product_id, 
+                        n=num_recs_to_give, 
+                        similarity_tablename='product_title_similarity' if by_title else 'product_description_similarity', 
+                        user_id=user_id
+                    )
+                    future_to_product[future] = (product_id, rating_info)
+                print("Collecting futures in model 1")
+                # Collect results as they complete
+                for future in concurrent.futures.as_completed(future_to_product):
+                    product_id, rating_info = future_to_product[future]
+                    try:
+                        similar_product_ids = future.result()
+                        most_similar_products[product_id] = [
+                            rating_info[1], rating_info[2], similar_product_ids
+                        ]
+                    except Exception as exc:
+                        print(f'Product {product_id} generated an exception: {exc}')
+            print("Threads returned in model 1. Recommending products")
             product_ids_to_rec = model_1_alg.recommend_products(
                 most_similar_products, num_recs_to_give
             )
-        
-        # Track time for fetching product details
-        with FUNCTION_LATENCY.labels(function_name='get_products_by_product_ids').time():
+            print("More returned in model 1. Getting products by id")
             x = model_1_helper_functions.get_products_by_product_ids(conn, product_ids_to_rec)
-        
-        return x
+            print("Returning proucts to api layer from model 1")
+            return x
     
     except Exception as e:
         print(f"Error in call_model_1: {e}")
-        RECOMMENDATION_ERRORS.labels(
-            method='GET', 
-            endpoint='/most_similar_products', 
-            error_type='recommendation_generation'
-        ).inc()
         raise
     finally:
         # Record total latency
         latency = time.time() - start_time
-        RECOMMENDATION_LATENCY.labels(
-            method='GET', 
-            endpoint='/most_similar_products'
-        ).observe(latency)
 
-@app.route("/most_similar_products", methods=["GET"])
+
+@app.route("/call_model_1", methods=["GET"])
 def most_similar_products():
     """
     API endpoint to retrieve the most similar products.
-    Enhanced with metrics and improved error handling.
+    Enhanced with error handling.
     """
-    # Increment total recommendations counter
-    RECOMMENDATIONS_TOTAL.labels(
-        method='GET', 
-        endpoint='/most_similar_products'
-    ).inc()
-
     try:
         # Extract query parameters
         user_id = request.args.get('user_id', "dummyUser")
@@ -180,23 +136,17 @@ def most_similar_products():
             "details": str(e)
         }), 500
 
-def run_metrics_server(port=9103):
-    """
-    Start Prometheus metrics server on a specified port
-    
-    Args:
-        port (int): Port to expose metrics server. Defaults to 9103.
-    """
-    print(f"Starting model_1 prometheus metrics on port {port}")
-    start_http_server(port)  # Metrics exposed on port
-    
 
 # Start metrics server & run app
 if __name__ == "__main__":
-    # Use environment variable for metrics port, default to 9103
-    # metrics_port = int(os.getenv('METRICS_PORT', 9103))
-    
-    # metrics_thread = threading.Thread(target=run_metrics_server, kwargs={'port': metrics_port})
-    # metrics_thread.start()
-    # call_model_1("dummyUser", 8, 8)
     app.run(debug=True, host="0.0.0.0", port=5003)
+    # most_similar_products()
+    # conn = get_db_connection()
+    # print("Got conn")
+    # recently_rated_products = model_1_helper_functions.get_recently_rated_products_info(
+    #     conn, 'dummyUser', 8
+    # )    
+    # print("Results: ", recently_rated_products)
+    # recently_rated_products = model_1_helper_functions.get_recently_rated_products_info(conn, 'dummyUser', 8)
+    # print(recently_rated_products)
+    # call_model_1('dummyUser', 8, 8)

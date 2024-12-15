@@ -55,7 +55,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(api_metrics_recommendations_generated_total{endpoint=~\"/most_similar_products|/initial_products\"}[5m])",
+          "expr": "rate(api_metrics_recommendations_generated_total{endpoint=~\"/call_model_1|/initial_products\"}[5m])",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{endpoint}}",
@@ -140,7 +140,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.90, rate(api_metrics_recommendation_latency_seconds_bucket{endpoint=~\"/most_similar_products|/initial_products\"}[5m]))",
+          "expr": "histogram_quantile(0.90, rate(api_metrics_recommendation_latency_seconds_bucket{endpoint=~\"/call_model_1|/initial_products\"}[5m]))",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{endpoint}} 90th Percentile",
@@ -233,7 +233,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(api_metrics_recommendation_errors_total{endpoint=~\"/most_similar_products|/initial_products\"}) by (endpoint, error_type)",
+          "expr": "sum(api_metrics_recommendation_errors_total{endpoint=~\"/call_model_1|/initial_products\"}) by (endpoint, error_type)",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{endpoint}} - {{error_type}}",
@@ -318,7 +318,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(api_metrics_requests_total{endpoint=~\"/most_similar_products|/initial_products\"}) by (status)",
+          "expr": "sum(api_metrics_requests_total{endpoint=~\"/call_model_1|/initial_products\"}) by (status)",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "{{status}}",

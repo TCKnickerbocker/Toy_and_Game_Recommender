@@ -1,7 +1,7 @@
 ## Test model 1 via 
 # docker build -t model_1 .
 # docker run -p 5003:5003 model_1
-# curl http://localhost:5003/most_similar_products
+# curl http://localhost:5003/call_model_1
 
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim

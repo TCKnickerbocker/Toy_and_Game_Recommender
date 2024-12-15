@@ -14,7 +14,6 @@ def get_n_most_similar_product_ids_model_1(conn, product_id, similarity_tablenam
     Returns:
     - List of product_ids that the user has not yet rated for the top n most similar products, excluding the current product_id.
     """
-    
     # Validate that n is a positive integer
     if not isinstance(n, int) or n <= 0:
         raise ValueError("n must be a positive integer")
@@ -68,7 +67,6 @@ def get_n_most_similar_product_ids_model_1(conn, product_id, similarity_tablenam
     with conn.cursor() as cur:
         cur.execute(query, (product_id, n, product_id, n, n))
         top_similar_products = cur.fetchall()
-        
     # Extract the product IDs from the result
     similar_product_ids = [row[0] for row in top_similar_products]
     return similar_product_ids

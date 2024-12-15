@@ -4,16 +4,16 @@ Prometheus Queries
 1. Recommendation Generation Metrics
 promqlCopy# Total recommendations generated per endpoint
 sum(api_metrics_recommendations_generated_total{endpoint="/initial_products"})
-sum(api_metrics_recommendations_generated_total{endpoint="/most_similar_products"})
-# ^^NOTE: Can replace endpoint with any of the other models (1-4) i.e. endpoint="/call_model_2"
+sum(api_metrics_recommendations_generated_total{endpoint="/call_model_1"})
+# ^^NOTE: Can replace endpoint with any of the other models (1-4) i.e. endpoint="/call_model_1"
 
 # Recommendation generation rate per minute
-rate(api_metrics_recommendations_generated_total{endpoint="/most_similar_products"}[5m])
+rate(api_metrics_recommendations_generated_total{endpoint="/call_model_1"}[5m])
 
 
 2. Latency Metrics
 promqlCopy# Recommendation Latency (90th Percentile)
-histogram_quantile(0.90, rate(api_metrics_recommendation_latency_seconds_bucket{endpoint="/most_similar_products"}[5m]))
+histogram_quantile(0.90, rate(api_metrics_recommendation_latency_seconds_bucket{endpoint="/call_model_1"}[5m]))
 
 # Database Query Latency
 histogram_quantile(0.90, rate(api_metrics_database_query_latency_seconds_bucket{endpoint="/initial_products", query_type="random_selection"}[5m]))
@@ -24,17 +24,17 @@ histogram_quantile(0.90, rate(api_metrics_external_model_call_latency_seconds_bu
 
 3. Error Rate Metrics
 promqlCopy# Total recommendation errors
-sum(api_metrics_recommendation_errors_total{endpoint="/most_similar_products"})
+sum(api_metrics_recommendation_errors_total{endpoint="/call_model_1"})
 
 # Error rate percentage
-sum(api_metrics_recommendation_errors_total{endpoint="/most_similar_products"}) / 
-sum(api_metrics_recommendations_generated_total{endpoint="/most_similar_products"}) * 100
+sum(api_metrics_recommendation_errors_total{endpoint="/call_model_1"}) / 
+sum(api_metrics_recommendations_generated_total{endpoint="/call_model_1"}) * 100
 
 
 4. Request Metrics
 promqlCopy# Total requests by endpoint and status
-sum(api_metrics_requests_total{endpoint="/most_similar_products", status="success"})
-sum(api_metrics_requests_total{endpoint="/most_similar_products", status="error"})
+sum(api_metrics_requests_total{endpoint="/call_model_1", status="success"})
+sum(api_metrics_requests_total{endpoint="/call_model_1", status="error"})
 
 EXTRA: Prometheus Process Metrics Queries (for port 9102/metrics - api metrics)
 Virtual Memory Usage

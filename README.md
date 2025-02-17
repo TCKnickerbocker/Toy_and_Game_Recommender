@@ -40,3 +40,5 @@ So, add a .env file to the following:
 
 ### Dev Notes
 - Tommy frontend working with: RUN npm install --production --legacy-peer-deps
+
+<br>Tools Used: Python, Snowflake, AWS, HuggingFace, Flask, OpenAI, Docker, Kubernetes, Locust
